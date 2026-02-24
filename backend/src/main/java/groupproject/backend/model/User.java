@@ -38,6 +38,14 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private boolean enable = true;
 
+    private String phoneNumber;
+
+    private String address;
+
+    @Column(length = 500)
+    private String bio;
+
+    private String photo;
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "user_role", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "role_id"))

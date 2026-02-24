@@ -30,6 +30,7 @@ public class JwtServiceImpl implements JwtService {
     private SecretKey getSigninKey() {
         return Keys.hmacShaKeyFor(jwtProperties.getSecret().getBytes());
     }
+
     private Claims extractAllClaims(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(getSigninKey())
@@ -44,7 +45,7 @@ public class JwtServiceImpl implements JwtService {
         claims.put("uid", user.getId());
         List<String> roles = user.getRoles()
                 .stream()
-                .map(Role::getName)   // assuming getName() returns "USER"
+                .map(Role::getName)
                 .toList();
         claims.put("roles", roles);
         return Jwts.builder()
@@ -56,12 +57,10 @@ public class JwtServiceImpl implements JwtService {
                 .compact();
     }
 
-
     @Override
     public String extractUserName(String token) {
         return extractClaim(token, Claims::getSubject);
     }
-
 
     @Override
     public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
@@ -80,7 +79,7 @@ public class JwtServiceImpl implements JwtService {
     }
 
     @Override
-    public String getRefreshToken(User user) {
+    public String generateRefreshToken(User user) {
         return Jwts.builder()
                 .setSubject(user.getUsername())
                 .setIssuedAt(new Date())
@@ -124,3 +123,4 @@ public class JwtServiceImpl implements JwtService {
     }
 
 }
+

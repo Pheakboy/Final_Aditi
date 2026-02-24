@@ -1,12 +1,17 @@
 package groupproject.backend.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.Set;
 
 @Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class AuthResponse {
 
     @JsonProperty("access_token")
@@ -15,8 +20,7 @@ public class AuthResponse {
     @JsonProperty("refresh_token")
     private String refreshToken;
 
-    @JsonProperty("type")
-    private String type = "Bearer";
+    private String type;
 
     private Set<String> roles;
 

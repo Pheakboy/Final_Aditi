@@ -2,6 +2,7 @@ package groupproject.backend.controller;
 
 import groupproject.backend.request.AuthLoginRequest;
 import groupproject.backend.request.RegisterRequest;
+import groupproject.backend.request.UpdateProfileRequest;
 import groupproject.backend.response.ApiResponse;
 import groupproject.backend.response.AuthResponse;
 import groupproject.backend.response.MeResponse;
@@ -31,18 +32,24 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(
+    public ResponseEntity<ApiResponse<AuthResponse>> login(
             @Valid @RequestBody AuthLoginRequest loginRequest,
             HttpServletResponse response) {
-
         AuthResponse authResponse = authService.login(loginRequest, response);
-
-        return ResponseEntity.ok(authResponse);
+        return ResponseEntity.ok(ApiResponse.success(authResponse, "Login successful"));
     }
 
     @GetMapping("/me")
-    public ResponseEntity<MeResponse> me(Authentication authentication) {
-        return ResponseEntity.ok(authService.me(authentication));
+    public ResponseEntity<ApiResponse<MeResponse>> me(Authentication authentication) {
+        return ResponseEntity.ok(ApiResponse.success(authService.me(authentication), "User info retrieved"));
+    }
+
+    @PutMapping("/profile")
+    public ResponseEntity<ApiResponse<MeResponse>> updateProfile(
+            Authentication authentication,
+            @Valid @RequestBody UpdateProfileRequest request
+    ) {
+        return ResponseEntity.ok(authService.updateProfile(authentication, request));
     }
 
     @PostMapping("/logout")
@@ -54,13 +61,12 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success(null, "Logged out successfully"));
     }
 
-
     @PostMapping("/refresh")
-    public ResponseEntity<?> refresh(
+    public ResponseEntity<ApiResponse<Void>> refresh(
             @CookieValue(name = "refreshToken", required = false) String refreshToken,
             HttpServletResponse response
     ) {
-        return authService.refresh(refreshToken, response);
+        return ResponseEntity.ok(authService.refresh(refreshToken, response));
     }
 
 }

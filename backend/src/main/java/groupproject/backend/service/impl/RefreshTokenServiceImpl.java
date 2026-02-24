@@ -3,8 +3,10 @@ package groupproject.backend.service.impl;
 import groupproject.backend.model.RefreshToken;
 import groupproject.backend.repository.RefreshTokenRepository;
 import groupproject.backend.service.RefreshTokenService;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 
@@ -22,14 +24,14 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
     public RefreshToken verify(String token) {
 
         RefreshToken refreshToken = refreshTokenRepository.findByToken(token)
-                .orElseThrow(() -> new RuntimeException("Invalid refresh token"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid refresh token"));
 
         if (refreshToken.isRevoked()) {
-            throw new RuntimeException("Refresh token revoked");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Refresh token revoked");
         }
 
         if (refreshToken.getExpiresAt().isBefore(Instant.now())) {
-            throw new RuntimeException("Refresh token expired");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Refresh token expired");
         }
 
         return refreshToken;
