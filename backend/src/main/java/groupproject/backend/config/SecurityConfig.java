@@ -37,7 +37,6 @@ public class SecurityConfig {
         this.jwtFilter = jwtFilter;
     }
 
-
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.cors(Customizer.withDefaults());
@@ -46,38 +45,25 @@ public class SecurityConfig {
         http.httpBasic(AbstractHttpConfigurer::disable);
 
         http.authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers("/error").permitAll()
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                .requestMatchers("/error").permitAll()
 
-                        // Auth endpoints — specific rules first, then wildcard
-                        .requestMatchers("/api/auth/me").authenticated()
-                        .requestMatchers("/api/auth/profile").authenticated()
-                        .requestMatchers("/api/auth/**").permitAll()
+                // Auth endpoints
+                .requestMatchers("/api/auth/me").authenticated()
+                .requestMatchers("/api/auth/profile").authenticated()
+                .requestMatchers("/api/auth/**").permitAll()
 
-                        // User registration
-                        .requestMatchers("/api/users/register").permitAll()
+                // Transaction endpoints — authenticated users only
+                .requestMatchers("/api/transactions/**").authenticated()
 
-                        // Products — specific admin rules first, then public GET
-                        .requestMatchers(HttpMethod.GET, "/api/products/dashboard").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/api/products/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/products/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/products/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
+                // Loan endpoints — authenticated users only
+                .requestMatchers("/api/loans/**").authenticated()
 
-                        // Categories — specific admin rules first, then public GET
-                        .requestMatchers(HttpMethod.POST, "/api/categories/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/categories/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/categories/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/categories/**").permitAll()
+                // Admin endpoints — ADMIN role only
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
-                        // Admin area
-                        .requestMatchers(HttpMethod.GET, "/api/users/**").hasRole("ADMIN")
-                        .requestMatchers("/dashboard").hasRole("ADMIN")
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
-
-                        .anyRequest().authenticated()
+                .anyRequest().authenticated()
         );
-
 
         http.sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
@@ -91,23 +77,21 @@ public class SecurityConfig {
                 })
         );
 
-        // ✅ IMPORTANT: enable JWT auth
         http.addFilterBefore(jwtFilter, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
-
     @Bean
-    public AuthenticationProvider authenticationProvider (){
-        DaoAuthenticationProvider daoAuthenticationProvider = new DaoAuthenticationProvider(userDetailsService);
+    public AuthenticationProvider authenticationProvider() {
+        DaoAuthenticationProvider daoAuthenticationProvider = new DaoAuthenticationProvider();
+        daoAuthenticationProvider.setUserDetailsService(userDetailsService);
         daoAuthenticationProvider.setPasswordEncoder(passwordEncoder());
         return daoAuthenticationProvider;
     }
 
-
     @Bean
-    public AuthenticationManager authenticationManager (AuthenticationConfiguration config) throws Exception{
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
 
@@ -117,7 +101,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    public CorsConfigurationSource corsConfigurationSource () {
+    public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOrigins(List.of(
                 "http://localhost:3000",
@@ -132,5 +116,4 @@ public class SecurityConfig {
 
         return source;
     }
-
 }
