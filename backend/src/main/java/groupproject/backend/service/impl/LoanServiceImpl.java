@@ -2,6 +2,7 @@ package groupproject.backend.service.impl;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -52,7 +53,7 @@ public class LoanServiceImpl implements LoanService {
     @Transactional
     public ApiResponse<LoanResponseDTO> applyLoan(Authentication authentication, LoanRequestDTO request) {
         User user = userRepository.findByEmail(authentication.getName())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
         long transactionCount = transactionRepository.countByUser(user);
 
@@ -74,7 +75,7 @@ public class LoanServiceImpl implements LoanService {
                 .purpose(request.getPurpose())
                 .build();
 
-        Loan saved = loanRepository.save(loan);
+        Loan saved = Objects.requireNonNull(loanRepository.save(loan), "Failed to save loan");
 
         return ApiResponse.success(mapToDTO(saved), "Loan application submitted successfully");
     }
@@ -82,7 +83,7 @@ public class LoanServiceImpl implements LoanService {
     @Override
     public ApiResponse<List<LoanResponseDTO>> getMyLoans(Authentication authentication) {
         User user = userRepository.findByEmail(authentication.getName())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
         List<LoanResponseDTO> loans = loanRepository.findByUserOrderByCreatedAtDesc(user)
                 .stream()
@@ -116,10 +117,15 @@ public class LoanServiceImpl implements LoanService {
     @Transactional
     public ApiResponse<LoanResponseDTO> decideLoan(Authentication authentication, UUID loanId, LoanDecisionRequestDTO request) {
         User admin = userRepository.findByEmail(authentication.getName())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
-        Loan loan = loanRepository.findById(loanId)
+        Loan loan = loanRepository.findById(Objects.requireNonNull(loanId, "Loan ID cannot be null"))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Loan not found"));
+
+        // Guard: only allow deciding PENDING loans
+        if (loan.getStatus() != LoanStatus.PENDING) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Loan has already been decided");
+        }
 
         LoanStatus decision;
         try {
@@ -143,7 +149,7 @@ public class LoanServiceImpl implements LoanService {
                 .note(request.getNote())
                 .build();
 
-        loanDecisionRepository.save(loanDecision);
+        Objects.requireNonNull(loanDecisionRepository.save(loanDecision), "Failed to save loan decision");
 
         return ApiResponse.success(mapToDTO(loan), "Loan decision recorded");
     }
@@ -162,7 +168,7 @@ public class LoanServiceImpl implements LoanService {
                 .createdAt(loan.getCreatedAt())
                 .updatedAt(loan.getUpdatedAt())
                 .applicantEmail(loan.getUser().getEmail())
-                .applicantUsername(loan.getUser().getUsername())
+                .applicantUsername(loan.getUser().getRealUsername())
                 .build();
     }
 }

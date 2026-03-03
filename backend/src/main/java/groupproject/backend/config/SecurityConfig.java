@@ -31,10 +31,12 @@ public class SecurityConfig {
 
     private final UserDetailsService userDetailsService;
     private final JwtFilter jwtFilter;
+    private final CorsProperties corsProperties;
 
-    public SecurityConfig(UserDetailsService userDetailsService, JwtFilter jwtFilter) {
+    public SecurityConfig(UserDetailsService userDetailsService, JwtFilter jwtFilter, CorsProperties corsProperties) {
         this.userDetailsService = userDetailsService;
         this.jwtFilter = jwtFilter;
+        this.corsProperties = corsProperties;
     }
 
     @Bean
@@ -47,6 +49,9 @@ public class SecurityConfig {
         http.authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers("/error").permitAll()
+
+                // H2 console (dev only — console is disabled in prod via application-prod.properties)
+                .requestMatchers("/h2-console/**").permitAll()
 
                 // Auth endpoints
                 .requestMatchers("/api/auth/me").authenticated()
@@ -65,6 +70,9 @@ public class SecurityConfig {
                 .anyRequest().authenticated()
         );
 
+        // Allow H2 console frames (dev only)
+        http.headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()));
+
         http.sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
         http.exceptionHandling(exception ->
@@ -78,6 +86,7 @@ public class SecurityConfig {
         );
 
         http.addFilterBefore(jwtFilter, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);
+        http.authenticationProvider(authenticationProvider());
 
         return http.build();
     }
@@ -103,10 +112,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of(
-                "http://localhost:3000",
-                "http://localhost:5173"
-        ));
+        config.setAllowedOrigins(corsProperties.getAllowedOrigins());
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowCredentials(true);
         config.addAllowedHeader("*");

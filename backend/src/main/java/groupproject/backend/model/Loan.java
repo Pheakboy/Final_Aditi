@@ -46,6 +46,7 @@ public class Loan {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Builder.Default
     private LoanStatus status = LoanStatus.PENDING;
 
     private String purpose;

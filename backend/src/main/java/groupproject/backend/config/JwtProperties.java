@@ -6,9 +6,11 @@ import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.validation.annotation.Validated;
 
 @Configuration
 @ConfigurationProperties(prefix = "jwt")
+@Validated
 @Getter
 @Setter
 public class JwtProperties {
@@ -17,7 +19,7 @@ public class JwtProperties {
     private String secret;
 
     @Min(60000)
-    private long expiration = 1000 * 60 * 10; // 10 minute
+    private long expiration = 1000 * 60 * 10; // 10 minutes
 
     @Min(60000)
     private long refreshExpiration = 1000 * 60 * 60 * 2; // 2 hours

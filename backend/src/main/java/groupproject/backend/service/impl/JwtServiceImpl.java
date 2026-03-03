@@ -32,11 +32,11 @@ public class JwtServiceImpl implements JwtService {
     }
 
     private Claims extractAllClaims(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(getSigninKey())
+        return Jwts.parser()
+                .verifyWith(getSigninKey())
                 .build()
-                .parseClaimsJws(token)
-                .getBody();
+                .parseSignedClaims(token)
+                .getPayload();
     }
 
     @Override
@@ -49,10 +49,10 @@ public class JwtServiceImpl implements JwtService {
                 .toList();
         claims.put("roles", roles);
         return Jwts.builder()
-                .setSubject(user.getUsername())
-                .addClaims(claims)
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + jwtProperties.getExpiration()))
+                .subject(user.getUsername())
+                .claims(claims)
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + jwtProperties.getExpiration()))
                 .signWith(getSigninKey())
                 .compact();
     }
@@ -81,10 +81,9 @@ public class JwtServiceImpl implements JwtService {
     @Override
     public String generateRefreshToken(User user) {
         return Jwts.builder()
-                .setSubject(user.getUsername())
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis()
-                        + jwtProperties.getRefreshExpiration()))
+                .subject(user.getUsername())
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + jwtProperties.getRefreshExpiration()))
                 .signWith(getSigninKey())
                 .compact();
     }
@@ -92,29 +91,20 @@ public class JwtServiceImpl implements JwtService {
     @Override
     public boolean validateRefreshToken(String refreshToken) {
         try {
-            // 1️⃣ Verify signature + structure
             String username = extractUserName(refreshToken);
 
-            // 2️⃣ Check expiration
             if (isTokenExpired(refreshToken)) {
                 return false;
             }
 
-            // 3️⃣ Check token exists in DB
             RefreshToken storedToken = refreshTokenRepository
                     .findByToken(refreshToken)
                     .orElse(null);
 
-            if (storedToken == null) {
+            if (storedToken == null || storedToken.isRevoked()) {
                 return false;
             }
 
-            // 4️⃣ Check not revoked
-            if (storedToken.isRevoked()) {
-                return false;
-            }
-
-            // 5️⃣ Check username matches
             return storedToken.getUser().getEmail().equals(username);
 
         } catch (Exception e) {

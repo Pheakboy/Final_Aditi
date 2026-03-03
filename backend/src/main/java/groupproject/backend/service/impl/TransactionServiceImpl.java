@@ -1,11 +1,14 @@
 package groupproject.backend.service.impl;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import groupproject.backend.dto.TransactionRequestDTO;
 import groupproject.backend.dto.TransactionResponseDTO;
@@ -31,7 +34,7 @@ public class TransactionServiceImpl implements TransactionService {
     @Transactional
     public ApiResponse<TransactionResponseDTO> addTransaction(Authentication authentication, TransactionRequestDTO request) {
         User user = userRepository.findByEmail(authentication.getName())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
         Transaction transaction = Transaction.builder()
                 .user(user)
@@ -40,7 +43,7 @@ public class TransactionServiceImpl implements TransactionService {
                 .description(request.getDescription())
                 .build();
 
-        Transaction saved = transactionRepository.save(transaction);
+        Transaction saved = Objects.requireNonNull(transactionRepository.save(transaction), "Failed to save transaction");
 
         return ApiResponse.success(mapToDTO(saved), "Transaction added successfully");
     }
@@ -48,7 +51,7 @@ public class TransactionServiceImpl implements TransactionService {
     @Override
     public ApiResponse<List<TransactionResponseDTO>> getMyTransactions(Authentication authentication) {
         User user = userRepository.findByEmail(authentication.getName())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
         List<TransactionResponseDTO> transactions = transactionRepository
                 .findByUserOrderByCreatedAtDesc(user)

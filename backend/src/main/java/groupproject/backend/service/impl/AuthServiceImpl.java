@@ -19,6 +19,11 @@ import groupproject.backend.service.JwtService;
 import groupproject.backend.service.RefreshTokenService;
 import groupproject.backend.util.CookieUtil;
 import jakarta.servlet.http.HttpServletResponse;
+
+import java.time.LocalDateTime;
+import java.util.Objects;
+import java.util.Optional;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -236,7 +241,7 @@ public class AuthServiceImpl implements AuthService {
             user.setPhoto(request.getPhoto());
         }
 
-        userRepository.save(user);
+        Objects.requireNonNull(userRepository.save(user), "Failed to save user");
 
         MeResponse data = new MeResponse();
         data.setEmail(user.getEmail());
