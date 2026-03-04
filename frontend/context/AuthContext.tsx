@@ -36,6 +36,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(JSON.parse(storedUser));
     }
     setIsLoading(false);
+
+    // Sync token state when the interceptor clears localStorage (e.g. after silent refresh)
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === "accessToken") {
+        setToken(e.newValue);
+      }
+      if (e.key === "user") {
+        setUser(e.newValue ? JSON.parse(e.newValue) : null);
+      }
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
   }, []);
 
   const login = async (email: string, password: string) => {

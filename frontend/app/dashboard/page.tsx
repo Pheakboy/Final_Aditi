@@ -6,15 +6,16 @@ import Link from "next/link";
 import { useAuth } from "../../context/AuthContext";
 import Sidebar from "../../components/Sidebar";
 import RiskBadge from "../../components/RiskBadge";
-import { transactionApi, loanApi } from "../../services/api";
-import { Transaction, Loan } from "../../types";
-import { formatCurrency } from "../../utils/format";
+import { transactionApi, loanApi, dashboardApi } from "../../services/api";
+import { Transaction, Loan, DashboardSummary } from "../../types";
+import { formatCurrency, formatDate } from "../../utils/format";
 
 export default function DashboardPage() {
   const { user, isLoading, isAdmin } = useAuth();
   const router = useRouter();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loans, setLoans] = useState<Loan[]>([]);
+  const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [dataLoading, setDataLoading] = useState(false);
   const [dataError, setDataError] = useState("");
 
@@ -32,16 +33,20 @@ export default function DashboardPage() {
       setDataLoading(true);
       const fetchData = async () => {
         try {
-          const [txRes, loanRes] = await Promise.all([
+          const [txRes, loanRes, summaryRes] = await Promise.all([
             transactionApi.getAll(),
             loanApi.getMyLoans(),
+            dashboardApi.getSummary(),
           ]);
           setTransactions(txRes.data.data || []);
           setLoans(loanRes.data.data || []);
+          setSummary(summaryRes.data.data || null);
           setDataError("");
         } catch (err) {
           console.error("Failed to fetch dashboard data", err);
-          setDataError("Failed to load dashboard data. Please refresh the page.");
+          setDataError(
+            "Failed to load dashboard data. Please refresh the page.",
+          );
         } finally {
           setDataLoading(false);
         }
@@ -58,17 +63,27 @@ export default function DashboardPage() {
     );
   }
 
-  const totalIncome = transactions
-    .filter((t) => t.type === "INCOME")
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  const totalExpense = transactions
-    .filter((t) => t.type === "EXPENSE")
-    .reduce((sum, t) => sum + t.amount, 0);
-
   const latestLoan = loans[0];
-  const pendingLoans = loans.filter((l) => l.status === "PENDING").length;
-  const approvedLoans = loans.filter((l) => l.status === "APPROVED").length;
+
+  // Use server-computed summary values when available, fall back to client computation
+  const totalIncome =
+    summary?.totalIncome ??
+    transactions
+      .filter((t) => t.type === "INCOME")
+      .reduce((sum, t) => sum + t.amount, 0);
+  const totalExpense =
+    summary?.totalExpenses ??
+    transactions
+      .filter((t) => t.type === "EXPENSE")
+      .reduce((sum, t) => sum + t.amount, 0);
+  const savingsBalance =
+    summary?.savingsBalance ?? Number(totalIncome) - Number(totalExpense);
+  const avgMonthlyIncome = summary?.averageMonthlyIncome ?? 0;
+  const pendingLoans =
+    summary?.pendingLoans ?? loans.filter((l) => l.status === "PENDING").length;
+  const approvedLoans =
+    summary?.approvedLoans ??
+    loans.filter((l) => l.status === "APPROVED").length;
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -107,7 +122,7 @@ export default function DashboardPage() {
               </div>
             </div>
             <p className="text-2xl font-bold text-gray-900">
-              {transactions.length}
+              {summary?.totalTransactions ?? transactions.length}
             </p>
           </div>
 
@@ -178,10 +193,50 @@ export default function DashboardPage() {
                 </svg>
               </div>
             </div>
-            <p className="text-2xl font-bold text-gray-900">{loans.length}</p>
+            <p className="text-2xl font-bold text-gray-900">
+              {summary?.totalLoans ?? loans.length}
+            </p>
             <p className="text-xs text-gray-400 mt-1">
               {pendingLoans} pending · {approvedLoans} approved
             </p>
+          </div>
+        </div>
+
+        {/* Additional summary stats from server */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <p className="text-sm text-gray-500 mb-1">Savings Balance</p>
+            <p
+              className={`text-2xl font-bold ${Number(savingsBalance) >= 0 ? "text-blue-600" : "text-red-600"}`}
+            >
+              {formatCurrency(savingsBalance)}
+            </p>
+            <p className="text-xs text-gray-400 mt-1">Income minus expenses</p>
+          </div>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <p className="text-sm text-gray-500 mb-1">Avg. Monthly Income</p>
+            <p className="text-2xl font-bold text-gray-900">
+              {formatCurrency(avgMonthlyIncome)}
+            </p>
+            <p className="text-xs text-gray-400 mt-1">Across active months</p>
+          </div>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <p className="text-sm text-gray-500 mb-1">Current Risk Level</p>
+            {summary?.currentRiskLevel ? (
+              <div className="mt-1">
+                <RiskBadge
+                  level={summary.currentRiskLevel as "LOW" | "MEDIUM" | "HIGH"}
+                  score={summary.currentRiskScore ?? undefined}
+                />
+                {summary.currentRiskScore != null && (
+                  <p className="text-xs text-gray-400 mt-2">
+                    Score: {summary.currentRiskScore.toFixed(1)}/100
+                  </p>
+                )}
+              </div>
+            ) : (
+              <p className="text-gray-400 text-sm mt-1">No loan applied yet</p>
+            )}
           </div>
         </div>
 
@@ -204,13 +259,23 @@ export default function DashboardPage() {
                     {latestLoan.status}
                   </span>
                 </p>
+                {latestLoan.purpose && (
+                  <p className="text-sm text-gray-400 mt-0.5">
+                    Purpose: {latestLoan.purpose}
+                  </p>
+                )}
+                {latestLoan.adminNote && (
+                  <p className="text-sm text-gray-500 mt-1 italic">
+                    Admin note: {latestLoan.adminNote}
+                  </p>
+                )}
               </div>
               <div className="text-right">
                 <RiskBadge
                   level={latestLoan.riskLevel}
                   score={latestLoan.riskScore}
                 />
-                {latestLoan.riskScore && (
+                {latestLoan.riskScore != null && (
                   <p className="text-sm text-gray-500 mt-2">
                     Risk Score: {latestLoan.riskScore.toFixed(1)}/100
                   </p>
@@ -220,7 +285,7 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Quick Actions */}
+        {/* Quick Actions + Recent Transactions */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
@@ -370,7 +435,7 @@ export default function DashboardPage() {
                           {tx.description || tx.type}
                         </p>
                         <p className="text-xs text-gray-400">
-                          {new Date(tx.transactionDate).toLocaleDateString()}
+                          {formatDate(tx.transactionDate)}
                         </p>
                       </div>
                     </div>

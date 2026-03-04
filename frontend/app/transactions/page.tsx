@@ -6,14 +6,14 @@ import { useAuth } from "../../context/AuthContext";
 import Sidebar from "../../components/Sidebar";
 import { transactionApi } from "../../services/api";
 import { Transaction } from "../../types";
-import { formatCurrency } from "../../utils/format";
+import { formatCurrency, formatDate } from "../../utils/format";
 import axios from "axios";
 
 export default function TransactionsPage() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [dataLoading, setDataLoading] = useState(true);
+  const [dataLoading, setDataLoading] = useState(false);
   const [dataError, setDataError] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
@@ -31,6 +31,7 @@ export default function TransactionsPage() {
   }, [user, isLoading, router]);
 
   const fetchTransactions = async () => {
+    setDataLoading(true);
     try {
       const res = await transactionApi.getAll();
       setTransactions(res.data.data || []);
@@ -304,12 +305,9 @@ export default function TransactionsPage() {
                         {tx.description ||
                           (tx.type === "INCOME" ? "Income" : "Expense")}
                       </p>
-                      <p className="text-xs text-gray-400">
-                        {new Date(tx.transactionDate).toLocaleDateString(
-                          "en-US",
-                          { year: "numeric", month: "short", day: "numeric" },
-                        )}
-                      </p>
+                       <p className="text-xs text-gray-400">
+                         {formatDate(tx.transactionDate)}
+                       </p>
                     </div>
                   </div>
                   <div className="text-right">

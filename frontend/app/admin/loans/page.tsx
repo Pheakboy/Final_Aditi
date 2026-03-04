@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { useAuth } from "../../../context/AuthContext";
 import Sidebar from "../../../components/Sidebar";
 import LoanCard from "../../../components/LoanCard";
@@ -11,7 +10,7 @@ import { adminApi } from "../../../services/api";
 import { Loan, PagedResponse } from "../../../types";
 import { formatCurrency, formatDate } from "../../../utils/format";
 
-export default function AdminApplicantsPage() {
+export default function AdminLoansPage() {
   const { user, isLoading, isAdmin } = useAuth();
   const router = useRouter();
   const [loans, setLoans] = useState<Loan[]>([]);
@@ -35,7 +34,7 @@ export default function AdminApplicantsPage() {
     decision: "APPROVED" | "REJECTED";
   } | null>(null);
   const [note, setNote] = useState("");
-  const [viewMode, setViewMode] = useState<"cards" | "table">("table");
+  const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
 
   useEffect(() => {
     if (!isLoading && !user) router.push("/login");
@@ -61,7 +60,7 @@ export default function AdminApplicantsPage() {
         setTotalElements(paged.totalElements);
       } catch (err) {
         console.error("Failed to fetch loans", err);
-        setDataError("Failed to load applicants. Please refresh.");
+        setDataError("Failed to load loan applications. Please refresh.");
       } finally {
         setDataLoading(false);
       }
@@ -130,7 +129,9 @@ export default function AdminApplicantsPage() {
         )}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">All Applicants</h1>
+            <h1 className="text-2xl font-bold text-gray-900">
+              Loan Applications
+            </h1>
             <p className="text-gray-500 mt-1">
               {totalElements} application{totalElements !== 1 ? "s" : ""} found
             </p>
@@ -244,7 +245,7 @@ export default function AdminApplicantsPage() {
         ) : loans.length === 0 ? (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
             <p className="text-gray-500">
-              No applicants match the selected filters.
+              No loans match the selected filters.
             </p>
           </div>
         ) : viewMode === "cards" ? (
@@ -332,30 +333,24 @@ export default function AdminApplicantsPage() {
                         {formatDate(loan.createdAt)}
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex flex-wrap gap-1">
-                          {loan.status === "PENDING" && (
-                            <>
-                              <button
-                                onClick={() =>
-                                  openNoteModal(loan.id, "APPROVED")
-                                }
-                                disabled={processingId === loan.id}
-                                className="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 disabled:opacity-50 transition-colors"
-                              >
-                                Approve
-                              </button>
-                              <button
-                                onClick={() =>
-                                  openNoteModal(loan.id, "REJECTED")
-                                }
-                                disabled={processingId === loan.id}
-                                className="px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 disabled:opacity-50 transition-colors"
-                              >
-                                Reject
-                              </button>
-                            </>
-                          )}
-                        </div>
+                        {loan.status === "PENDING" && (
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => openNoteModal(loan.id, "APPROVED")}
+                              disabled={processingId === loan.id}
+                              className="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 disabled:opacity-50 transition-colors"
+                            >
+                              Approve
+                            </button>
+                            <button
+                              onClick={() => openNoteModal(loan.id, "REJECTED")}
+                              disabled={processingId === loan.id}
+                              className="px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 disabled:opacity-50 transition-colors"
+                            >
+                              Reject
+                            </button>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   );

@@ -9,7 +9,7 @@ import LoanCard from "../../../components/LoanCard";
 import { loanApi } from "../../../services/api";
 import { Loan } from "../../../types";
 
-export default function LoanStatusPage() {
+export default function LoanHistoryPage() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
   const [loans, setLoans] = useState<Loan[]>([]);
@@ -33,7 +33,7 @@ export default function LoanStatusPage() {
         .then((res) => setLoans(res.data.data || []))
         .catch((err) => {
           console.error("Failed to fetch loans", err);
-          setDataError("Failed to load loan applications. Please refresh.");
+          setDataError("Failed to load loan history. Please refresh.");
         })
         .finally(() => setDataLoading(false));
     }
@@ -61,8 +61,10 @@ export default function LoanStatusPage() {
         )}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Loan Status</h1>
-            <p className="text-gray-500 mt-1">Track your loan applications</p>
+            <h1 className="text-2xl font-bold text-gray-900">Loan History</h1>
+            <p className="text-gray-500 mt-1">
+              All your loan applications and their outcomes
+            </p>
           </div>
           <Link
             href="/loan/apply"

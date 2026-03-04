@@ -14,7 +14,7 @@ export default function AdminDashboardPage() {
   const router = useRouter();
   const [pendingLoans, setPendingLoans] = useState<Loan[]>([]);
   const [allLoans, setAllLoans] = useState<Loan[]>([]);
-  const [dataLoading, setDataLoading] = useState(true);
+  const [dataLoading, setDataLoading] = useState(false);
   const [dataError, setDataError] = useState("");
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [noteModal, setNoteModal] = useState<{
@@ -29,6 +29,7 @@ export default function AdminDashboardPage() {
   }, [user, isLoading, isAdmin, router]);
 
   const fetchData = async () => {
+    setDataLoading(true);
     try {
       const [pendingRes, allRes] = await Promise.all([
         adminApi.getPendingLoans(),
