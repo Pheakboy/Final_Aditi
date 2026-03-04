@@ -10,11 +10,15 @@ import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import jakarta.persistence.criteria.Predicate;
+import java.util.ArrayList;
 
 import groupproject.backend.dto.LoanDecisionRequestDTO;
 import groupproject.backend.dto.LoanRequestDTO;
@@ -93,6 +97,7 @@ public class LoanServiceImpl implements LoanService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public ApiResponse<List<LoanResponseDTO>> getMyLoans(Authentication authentication) {
         User user = userRepository.findByEmail(authentication.getName())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
@@ -106,6 +111,7 @@ public class LoanServiceImpl implements LoanService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public ApiResponse<List<LoanResponseDTO>> getAllLoans() {
         List<LoanResponseDTO> loans = loanRepository.findAllByOrderByCreatedAtDesc()
                 .stream()
@@ -116,6 +122,7 @@ public class LoanServiceImpl implements LoanService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public ApiResponse<List<LoanResponseDTO>> getPendingLoans() {
         List<LoanResponseDTO> loans = loanRepository.findByStatusOrderByCreatedAtDesc(LoanStatus.PENDING)
                 .stream()
@@ -170,6 +177,7 @@ public class LoanServiceImpl implements LoanService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public ApiResponse<PagedResponse<LoanResponseDTO>> getLoansFiltered(
             int page, int size,
             String status,
@@ -192,8 +200,26 @@ public class LoanServiceImpl implements LoanService {
         LocalDateTime from = fromDate != null ? fromDate.atStartOfDay() : null;
         LocalDateTime to   = toDate   != null ? toDate.atTime(23, 59, 59) : null;
 
-        Page<Loan> loanPage = loanRepository.findByFilters(
-                statusEnum, riskLevelEnum, from, to, PageRequest.of(page, size));
+        final LoanStatus finalStatus = statusEnum;
+        final RiskLevel finalRiskLevel = riskLevelEnum;
+        final LocalDateTime finalFrom = from;
+        final LocalDateTime finalTo = to;
+
+        Specification<Loan> spec = (root, query, cb) -> {
+            // Only JOIN FETCH on the data query, not on the COUNT query
+            if (query != null && !query.getResultType().equals(Long.class)) {
+                root.fetch("user");
+            }
+            List<Predicate> predicates = new ArrayList<>();
+            if (finalStatus != null)    predicates.add(cb.equal(root.get("status"), finalStatus));
+            if (finalRiskLevel != null) predicates.add(cb.equal(root.get("riskLevel"), finalRiskLevel));
+            if (finalFrom != null)      predicates.add(cb.greaterThanOrEqualTo(root.get("createdAt"), finalFrom));
+            if (finalTo != null)        predicates.add(cb.lessThanOrEqualTo(root.get("createdAt"), finalTo));
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+
+        Page<Loan> loanPage = loanRepository.findAll(spec,
+                PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt")));
 
         PagedResponse<LoanResponseDTO> paged = PagedResponse.<LoanResponseDTO>builder()
                 .content(loanPage.getContent().stream().map(this::mapToDTO).collect(Collectors.toList()))

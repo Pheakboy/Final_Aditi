@@ -10,6 +10,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -104,6 +105,7 @@ public class AdminController {
     // â”€â”€ Analytics â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @GetMapping("/analytics")
+    @Transactional(readOnly = true)
     public ResponseEntity<ApiResponse<AnalyticsDTO>> getAnalytics() {
         // Risk distribution
         long lowCount = loanRepository.countByRiskLevel(RiskLevel.LOW);
@@ -145,7 +147,7 @@ public class AdminController {
         }
 
         // Top high risk users (up to 10)
-        List<Object[]> highRiskRows = loanRepository.findTopHighRiskUsers();
+        List<Object[]> highRiskRows = loanRepository.findTopHighRiskUsers(RiskLevel.HIGH);
         List<AnalyticsDTO.HighRiskUser> topHighRiskUsers = new java.util.ArrayList<>();
         int limit = 0;
         for (Object[] row : highRiskRows) {

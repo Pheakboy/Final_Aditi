@@ -1,11 +1,8 @@
 package groupproject.backend.repository;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -19,35 +16,26 @@ import groupproject.backend.model.enums.RiskLevel;
 
 @Repository
 public interface LoanRepository extends JpaRepository<Loan, UUID>, JpaSpecificationExecutor<Loan> {
-    List<Loan> findByUserOrderByCreatedAtDesc(User user);
-    List<Loan> findByStatusOrderByCreatedAtDesc(LoanStatus status);
+
+    @Query("SELECT l FROM Loan l JOIN FETCH l.user WHERE l.user = :user ORDER BY l.createdAt DESC")
+    List<Loan> findByUserOrderByCreatedAtDesc(@Param("user") User user);
+
+    @Query("SELECT l FROM Loan l JOIN FETCH l.user WHERE l.status = :status ORDER BY l.createdAt DESC")
+    List<Loan> findByStatusOrderByCreatedAtDesc(@Param("status") LoanStatus status);
+
+    @Query("SELECT l FROM Loan l JOIN FETCH l.user ORDER BY l.createdAt DESC")
     List<Loan> findAllByOrderByCreatedAtDesc();
 
     long countByStatus(LoanStatus status);
     long countByRiskLevel(RiskLevel riskLevel);
 
-    // PostgreSQL-compatible: use native query with EXTRACT
-    @Query(value = "SELECT EXTRACT(MONTH FROM created_at) AS month, EXTRACT(YEAR FROM created_at) AS year, COUNT(*) AS count " +
-           "FROM loans GROUP BY EXTRACT(YEAR FROM created_at), EXTRACT(MONTH FROM created_at) " +
-           "ORDER BY EXTRACT(YEAR FROM created_at) DESC, EXTRACT(MONTH FROM created_at) DESC",
-           nativeQuery = true)
+    // JPQL: works with both H2 (dev) and PostgreSQL (prod)
+    @Query("SELECT MONTH(l.createdAt), YEAR(l.createdAt), COUNT(l) FROM Loan l " +
+           "GROUP BY YEAR(l.createdAt), MONTH(l.createdAt) " +
+           "ORDER BY YEAR(l.createdAt) DESC, MONTH(l.createdAt) DESC")
     List<Object[]> findMonthlyLoanCounts();
 
-    // Fixed: ORDER BY DESC to get highest-risk users first
-    @Query("SELECT l.user, l.riskScore FROM Loan l WHERE l.riskLevel = 'HIGH' ORDER BY l.riskScore DESC")
-    List<Object[]> findTopHighRiskUsers();
-
-    // Paginated + filtered query for admin panel
-    @Query("SELECT l FROM Loan l WHERE " +
-           "(:status IS NULL OR l.status = :status) AND " +
-           "(:riskLevel IS NULL OR l.riskLevel = :riskLevel) AND " +
-           "(:fromDate IS NULL OR l.createdAt >= :fromDate) AND " +
-           "(:toDate IS NULL OR l.createdAt <= :toDate) " +
-           "ORDER BY l.createdAt DESC")
-    Page<Loan> findByFilters(
-            @Param("status") LoanStatus status,
-            @Param("riskLevel") RiskLevel riskLevel,
-            @Param("fromDate") LocalDateTime fromDate,
-            @Param("toDate") LocalDateTime toDate,
-            Pageable pageable);
+    // Use enum parameter instead of string literal to avoid Hibernate 6 type mismatch
+    @Query("SELECT l.user, l.riskScore FROM Loan l WHERE l.riskLevel = :riskLevel ORDER BY l.riskScore DESC")
+    List<Object[]> findTopHighRiskUsers(@Param("riskLevel") RiskLevel riskLevel);
 }
