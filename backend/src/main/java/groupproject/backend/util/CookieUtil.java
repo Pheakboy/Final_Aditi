@@ -1,22 +1,41 @@
 package groupproject.backend.util;
 
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
-public final class CookieUtil {
+/**
+ * Cookie utility that conditionally sets the Secure flag based on the active profile.
+ * In production the Secure flag is required (HTTPS). In dev (HTTP) it must be omitted
+ * or the browser will silently reject the cookie.
+ */
+@Component
+public class CookieUtil {
 
-    private CookieUtil() {}
+    private final boolean secureCookies;
 
-    public static void addCookie(HttpServletResponse response,
-                                 String name, String value, long maxAgeMs) {
-        response.addHeader("Set-Cookie",
-                name + "=" + value +
-                        "; HttpOnly; Secure; Path=/; SameSite=None; Max-Age=" +
-                        (maxAgeMs / 1000));
+    public CookieUtil(
+            @Value("${spring.profiles.active:dev}") String activeProfile) {
+        // Enable Secure flag only when running in production profile
+        this.secureCookies = activeProfile.contains("prod");
     }
 
-    public static void clearCookie(HttpServletResponse response, String name) {
-        response.addHeader("Set-Cookie",
-                name + "=; HttpOnly; Secure; Path=/; SameSite=None; Max-Age=0");
+    public void addCookie(HttpServletResponse response,
+                          String name, String value, long maxAgeMs) {
+        String cookie = name + "=" + value +
+                "; HttpOnly; Path=/; SameSite=" + (secureCookies ? "None" : "Lax") +
+                (secureCookies ? "; Secure" : "") +
+                "; Max-Age=" + (maxAgeMs / 1000);
+        response.addHeader("Set-Cookie", cookie);
+    }
+
+    public void clearCookie(HttpServletResponse response, String name) {
+        String cookie = name + "=; HttpOnly; Path=/; SameSite=" +
+                (secureCookies ? "None" : "Lax") +
+                (secureCookies ? "; Secure" : "") +
+                "; Max-Age=0";
+        response.addHeader("Set-Cookie", cookie);
     }
 }
+
 

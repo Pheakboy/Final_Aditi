@@ -1,11 +1,15 @@
 package groupproject.backend.service.impl;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -25,6 +29,8 @@ import groupproject.backend.repository.LoanRepository;
 import groupproject.backend.repository.TransactionRepository;
 import groupproject.backend.repository.UserRepository;
 import groupproject.backend.response.ApiResponse;
+import groupproject.backend.response.PagedResponse;
+import groupproject.backend.service.AuditLogService;
 import groupproject.backend.service.LoanService;
 import groupproject.backend.service.RiskScoringService;
 
@@ -36,17 +42,20 @@ public class LoanServiceImpl implements LoanService {
     private final TransactionRepository transactionRepository;
     private final UserRepository userRepository;
     private final RiskScoringService riskScoringService;
+    private final AuditLogService auditLogService;
 
     public LoanServiceImpl(LoanRepository loanRepository,
                            LoanDecisionRepository loanDecisionRepository,
                            TransactionRepository transactionRepository,
                            UserRepository userRepository,
-                           RiskScoringService riskScoringService) {
+                           RiskScoringService riskScoringService,
+                           AuditLogService auditLogService) {
         this.loanRepository = loanRepository;
         this.loanDecisionRepository = loanDecisionRepository;
         this.transactionRepository = transactionRepository;
         this.userRepository = userRepository;
         this.riskScoringService = riskScoringService;
+        this.auditLogService = auditLogService;
     }
 
     @Override
@@ -76,6 +85,9 @@ public class LoanServiceImpl implements LoanService {
                 .build();
 
         Loan saved = Objects.requireNonNull(loanRepository.save(loan), "Failed to save loan");
+
+        auditLogService.log("LOAN_APPLICATION", user.getEmail(),
+                "Applied for loan of " + request.getLoanAmount() + ", risk: " + riskLevel + " (" + riskScore + ")");
 
         return ApiResponse.success(mapToDTO(saved), "Loan application submitted successfully");
     }
@@ -151,7 +163,48 @@ public class LoanServiceImpl implements LoanService {
 
         Objects.requireNonNull(loanDecisionRepository.save(loanDecision), "Failed to save loan decision");
 
+        auditLogService.log("LOAN_" + decision.name(), admin.getEmail(),
+                "Loan " + loanId + " " + decision.name().toLowerCase() + " by admin");
+
         return ApiResponse.success(mapToDTO(loan), "Loan decision recorded");
+    }
+
+    @Override
+    public ApiResponse<PagedResponse<LoanResponseDTO>> getLoansFiltered(
+            int page, int size,
+            String status,
+            String riskLevel,
+            LocalDate fromDate,
+            LocalDate toDate) {
+
+        LoanStatus statusEnum = null;
+        if (status != null && !status.isBlank()) {
+            try { statusEnum = LoanStatus.valueOf(status.toUpperCase()); }
+            catch (IllegalArgumentException ignored) {}
+        }
+
+        RiskLevel riskLevelEnum = null;
+        if (riskLevel != null && !riskLevel.isBlank()) {
+            try { riskLevelEnum = RiskLevel.valueOf(riskLevel.toUpperCase()); }
+            catch (IllegalArgumentException ignored) {}
+        }
+
+        LocalDateTime from = fromDate != null ? fromDate.atStartOfDay() : null;
+        LocalDateTime to   = toDate   != null ? toDate.atTime(23, 59, 59) : null;
+
+        Page<Loan> loanPage = loanRepository.findByFilters(
+                statusEnum, riskLevelEnum, from, to, PageRequest.of(page, size));
+
+        PagedResponse<LoanResponseDTO> paged = PagedResponse.<LoanResponseDTO>builder()
+                .content(loanPage.getContent().stream().map(this::mapToDTO).collect(Collectors.toList()))
+                .page(loanPage.getNumber())
+                .size(loanPage.getSize())
+                .totalElements(loanPage.getTotalElements())
+                .totalPages(loanPage.getTotalPages())
+                .last(loanPage.isLast())
+                .build();
+
+        return ApiResponse.success(paged, "Loans retrieved");
     }
 
     private LoanResponseDTO mapToDTO(Loan loan) {

@@ -1,5 +1,19 @@
 package groupproject.backend.service.impl;
 
+import java.time.Instant;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+
 import groupproject.backend.config.JwtProperties;
 import groupproject.backend.model.RefreshToken;
 import groupproject.backend.model.Role;
@@ -14,28 +28,12 @@ import groupproject.backend.response.ApiResponse;
 import groupproject.backend.response.AuthResponse;
 import groupproject.backend.response.MeResponse;
 import groupproject.backend.response.RegisterResponse;
+import groupproject.backend.service.AuditLogService;
 import groupproject.backend.service.AuthService;
 import groupproject.backend.service.JwtService;
 import groupproject.backend.service.RefreshTokenService;
 import groupproject.backend.util.CookieUtil;
 import jakarta.servlet.http.HttpServletResponse;
-
-import java.time.LocalDateTime;
-import java.util.Objects;
-import java.util.Optional;
-
-import org.springframework.http.HttpStatus;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
-
-import java.time.Instant;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @Service
 public class AuthServiceImpl implements AuthService {
@@ -48,6 +46,8 @@ public class AuthServiceImpl implements AuthService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtProperties jwtProperties;
+    private final CookieUtil cookieUtil;
+    private final AuditLogService auditLogService;
 
     public AuthServiceImpl(AuthenticationManager authenticationManager,
                            UserRepository userRepository,
@@ -56,7 +56,9 @@ public class AuthServiceImpl implements AuthService {
                            RefreshTokenService refreshTokenService,
                            RefreshTokenRepository refreshTokenRepository,
                            PasswordEncoder passwordEncoder,
-                           JwtProperties jwtProperties) {
+                           JwtProperties jwtProperties,
+                           CookieUtil cookieUtil,
+                           AuditLogService auditLogService) {
         this.authenticationManager = authenticationManager;
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
@@ -65,6 +67,8 @@ public class AuthServiceImpl implements AuthService {
         this.refreshTokenRepository = refreshTokenRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtProperties = jwtProperties;
+        this.cookieUtil = cookieUtil;
+        this.auditLogService = auditLogService;
     }
 
     @Override
@@ -130,8 +134,10 @@ public class AuthServiceImpl implements AuthService {
 
         refreshTokenRepository.save(tokenEntity);
 
-        CookieUtil.addCookie(response, "accessToken", accessToken, jwtProperties.getExpiration());
-        CookieUtil.addCookie(response, "refreshToken", refreshToken, jwtProperties.getRefreshExpiration());
+        cookieUtil.addCookie(response, "accessToken", accessToken, jwtProperties.getExpiration());
+        cookieUtil.addCookie(response, "refreshToken", refreshToken, jwtProperties.getRefreshExpiration());
+
+        auditLogService.log("USER_LOGIN", user.getEmail(), "User logged in successfully");
 
         return AuthResponse.builder()
                 .type("Bearer")
@@ -182,8 +188,8 @@ public class AuthServiceImpl implements AuthService {
             refreshTokenService.revoke(refreshToken);
         }
 
-        CookieUtil.clearCookie(response, "accessToken");
-        CookieUtil.clearCookie(response, "refreshToken");
+        cookieUtil.clearCookie(response, "accessToken");
+        cookieUtil.clearCookie(response, "refreshToken");
     }
 
 
@@ -206,7 +212,7 @@ public class AuthServiceImpl implements AuthService {
         User user = storedToken.getUser();
 
         String newAccessToken = jwtService.generateAccessToken(user);
-        CookieUtil.addCookie(response, "accessToken", newAccessToken, jwtProperties.getExpiration());
+        cookieUtil.addCookie(response, "accessToken", newAccessToken, jwtProperties.getExpiration());
 
         return ApiResponse.success(null, "Token refreshed");
     }
