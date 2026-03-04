@@ -69,14 +69,13 @@ export default function TransactionsPage() {
     } catch (err: unknown) {
       setFormError(
         axios.isAxiosError(err)
-          ? err.response?.data?.message ?? "Failed to add transaction"
+          ? (err.response?.data?.message ?? "Failed to add transaction")
           : "Failed to add transaction",
       );
     } finally {
       setIsSubmitting(false);
     }
   };
-
 
   const totalIncome = transactions
     .filter((t) => t.type === "INCOME")
@@ -85,10 +84,10 @@ export default function TransactionsPage() {
     .filter((t) => t.type === "EXPENSE")
     .reduce((s, t) => s + t.amount, 0);
 
-  if (isLoading || dataLoading) {
+  if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-teal-500 border-t-transparent"></div>
       </div>
     );
   }
@@ -305,9 +304,9 @@ export default function TransactionsPage() {
                         {tx.description ||
                           (tx.type === "INCOME" ? "Income" : "Expense")}
                       </p>
-                       <p className="text-xs text-gray-400">
-                         {formatDate(tx.transactionDate)}
-                       </p>
+                      <p className="text-xs text-gray-400">
+                        {formatDate(tx.transactionDate)}
+                      </p>
                     </div>
                   </div>
                   <div className="text-right">

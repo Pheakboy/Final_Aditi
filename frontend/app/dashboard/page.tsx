@@ -55,10 +55,10 @@ export default function DashboardPage() {
     }
   }, [user, isAdmin]);
 
-  if (isLoading || dataLoading) {
+  if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="flex min-h-screen items-center justify-center bg-slate-50">
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-teal-500 border-t-transparent"></div>
       </div>
     );
   }
@@ -85,220 +85,323 @@ export default function DashboardPage() {
     summary?.approvedLoans ??
     loans.filter((l) => l.status === "APPROVED").length;
 
+  const statCards = [
+    {
+      label: "Total Income",
+      value: formatCurrency(totalIncome),
+      icon: (
+        <svg
+          className="w-5 h-5 text-white"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M7 11l5-5m0 0l5 5m-5-5v12"
+          />
+        </svg>
+      ),
+      iconBg: "gradient-emerald",
+      valueColor: "text-emerald-600",
+    },
+    {
+      label: "Total Expenses",
+      value: formatCurrency(totalExpense),
+      icon: (
+        <svg
+          className="w-5 h-5 text-white"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M17 13l-5 5m0 0l-5-5m5 5V6"
+          />
+        </svg>
+      ),
+      iconBg: "gradient-rose",
+      valueColor: "text-red-500",
+    },
+    {
+      label: "Savings Balance",
+      value: formatCurrency(savingsBalance),
+      icon: (
+        <svg
+          className="w-5 h-5 text-white"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+          />
+        </svg>
+      ),
+      iconBg: "gradient-sky",
+      valueColor: Number(savingsBalance) >= 0 ? "text-sky-600" : "text-red-500",
+    },
+    {
+      label: "Loan Applications",
+      value: String(summary?.totalLoans ?? loans.length),
+      sub: `${pendingLoans} pending · ${approvedLoans} approved`,
+      icon: (
+        <svg
+          className="w-5 h-5 text-white"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
+        </svg>
+      ),
+      iconBg: "gradient-amber",
+      valueColor: "text-slate-900",
+    },
+  ];
+
+  const quickActions = [
+    {
+      href: "/transactions",
+      icon: (
+        <svg
+          className="w-4 h-4 text-teal-600"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M12 4v16m8-8H4"
+          />
+        </svg>
+      ),
+      iconBg: "bg-teal-50",
+      title: "Add Transaction",
+      sub: "Record income or expense",
+    },
+    {
+      href: "/loan/apply",
+      icon: (
+        <svg
+          className="w-4 h-4 text-emerald-600"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
+        </svg>
+      ),
+      iconBg: "bg-emerald-50",
+      title: "Apply for Loan",
+      sub: "Submit a new loan application",
+    },
+    {
+      href: "/loan/status",
+      icon: (
+        <svg
+          className="w-4 h-4 text-indigo-600"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
+        </svg>
+      ),
+      iconBg: "bg-indigo-50",
+      title: "View Loan Status",
+      sub: "Check your loan applications",
+    },
+  ];
+
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-slate-50">
       <Sidebar />
-      <main className="flex-1 p-8">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-500 mt-1">Welcome back, {user?.username}!</p>
+      <main className="flex-1 p-6 lg:p-8 overflow-auto">
+        {/* Header */}
+        <div className="mb-8 animate-fade-in">
+          <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
+          <p className="text-slate-500 mt-1 text-sm">
+            Welcome back,{" "}
+            <span className="font-semibold text-teal-600">
+              {user?.username}
+            </span>
+            !
+          </p>
         </div>
 
         {dataError && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm mb-6">
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm mb-6 flex items-center gap-2">
+            <svg
+              className="w-4 h-4 shrink-0"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                clipRule="evenodd"
+              />
+            </svg>
             {dataError}
           </div>
         )}
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-gray-500">Total Transactions</p>
-              <div className="bg-blue-100 rounded-lg p-2">
-                <svg
-                  className="w-4 h-4 text-blue-600"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                  />
-                </svg>
+        {/* Stat Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5 mb-8">
+          {statCards.map((card) => (
+            <div
+              key={card.label}
+              className="bg-white rounded-2xl card-shadow p-5 flex items-start gap-4"
+            >
+              <div
+                className={`${card.iconBg} w-10 h-10 rounded-xl flex items-center justify-center shrink-0`}
+              >
+                {card.icon}
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs text-slate-500 mb-0.5">{card.label}</p>
+                <p className={`text-xl font-bold truncate ${card.valueColor}`}>
+                  {card.value}
+                </p>
+                {card.sub && (
+                  <p className="text-xs text-slate-400 mt-0.5">{card.sub}</p>
+                )}
               </div>
             </div>
-            <p className="text-2xl font-bold text-gray-900">
-              {summary?.totalTransactions ?? transactions.length}
-            </p>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-gray-500">Total Income</p>
-              <div className="bg-green-100 rounded-lg p-2">
-                <svg
-                  className="w-4 h-4 text-green-600"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M7 11l5-5m0 0l5 5m-5-5v12"
-                  />
-                </svg>
-              </div>
-            </div>
-            <p className="text-2xl font-bold text-green-600">
-              {formatCurrency(totalIncome)}
-            </p>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-gray-500">Total Expenses</p>
-              <div className="bg-red-100 rounded-lg p-2">
-                <svg
-                  className="w-4 h-4 text-red-600"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M17 13l-5 5m0 0l-5-5m5 5V6"
-                  />
-                </svg>
-              </div>
-            </div>
-            <p className="text-2xl font-bold text-red-600">
-              {formatCurrency(totalExpense)}
-            </p>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-gray-500">Loan Applications</p>
-              <div className="bg-purple-100 rounded-lg p-2">
-                <svg
-                  className="w-4 h-4 text-purple-600"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-              </div>
-            </div>
-            <p className="text-2xl font-bold text-gray-900">
-              {summary?.totalLoans ?? loans.length}
-            </p>
-            <p className="text-xs text-gray-400 mt-1">
-              {pendingLoans} pending · {approvedLoans} approved
-            </p>
-          </div>
+          ))}
         </div>
 
-        {/* Additional summary stats from server */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <p className="text-sm text-gray-500 mb-1">Savings Balance</p>
-            <p
-              className={`text-2xl font-bold ${Number(savingsBalance) >= 0 ? "text-blue-600" : "text-red-600"}`}
-            >
-              {formatCurrency(savingsBalance)}
-            </p>
-            <p className="text-xs text-gray-400 mt-1">Income minus expenses</p>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <p className="text-sm text-gray-500 mb-1">Avg. Monthly Income</p>
-            <p className="text-2xl font-bold text-gray-900">
+        {/* Secondary stats row */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
+          <div className="bg-white rounded-2xl card-shadow p-5">
+            <p className="text-xs text-slate-500 mb-1">Avg. Monthly Income</p>
+            <p className="text-xl font-bold text-slate-900">
               {formatCurrency(avgMonthlyIncome)}
             </p>
-            <p className="text-xs text-gray-400 mt-1">Across active months</p>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Across active months
+            </p>
           </div>
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <p className="text-sm text-gray-500 mb-1">Current Risk Level</p>
+          <div className="bg-white rounded-2xl card-shadow p-5">
+            <p className="text-xs text-slate-500 mb-1">Transactions</p>
+            <p className="text-xl font-bold text-slate-900">
+              {summary?.totalTransactions ?? transactions.length}
+            </p>
+            <p className="text-xs text-slate-400 mt-0.5">Total recorded</p>
+          </div>
+          <div className="bg-white rounded-2xl card-shadow p-5">
+            <p className="text-xs text-slate-500 mb-2">Current Risk Level</p>
             {summary?.currentRiskLevel ? (
-              <div className="mt-1">
+              <>
                 <RiskBadge
                   level={summary.currentRiskLevel as "LOW" | "MEDIUM" | "HIGH"}
                   score={summary.currentRiskScore ?? undefined}
                 />
-                {summary.currentRiskScore != null && (
-                  <p className="text-xs text-gray-400 mt-2">
-                    Score: {summary.currentRiskScore.toFixed(1)}/100
-                  </p>
-                )}
-              </div>
+              </>
             ) : (
-              <p className="text-gray-400 text-sm mt-1">No loan applied yet</p>
+              <p className="text-slate-400 text-sm">No loan applied yet</p>
             )}
           </div>
         </div>
 
-        {/* Latest Loan Risk Score */}
+        {/* Latest Loan */}
         {latestLoan && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              Latest Loan Application
-            </h2>
-            <div className="flex items-center justify-between">
+          <div className="bg-white rounded-2xl card-shadow p-5 mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-semibold text-slate-900">
+                Latest Loan Application
+              </h2>
+              <Link
+                href="/loan/status"
+                className="text-xs font-medium text-teal-600 hover:text-teal-700"
+              >
+                View all →
+              </Link>
+            </div>
+            <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-3xl font-bold text-gray-900">
+                <p className="text-2xl font-bold text-slate-900">
                   {formatCurrency(latestLoan.loanAmount)}
                 </p>
-                <p className="text-sm text-gray-500 mt-1">
-                  Status:{" "}
+                {latestLoan.purpose && (
+                  <p className="text-sm text-slate-400 mt-0.5">
+                    {latestLoan.purpose}
+                  </p>
+                )}
+                <div className="flex items-center gap-2 mt-2">
                   <span
-                    className={`font-medium ${latestLoan.status === "APPROVED" ? "text-green-600" : latestLoan.status === "REJECTED" ? "text-red-600" : "text-yellow-600"}`}
+                    className={`text-xs font-semibold px-2 py-0.5 rounded-full ${latestLoan.status === "APPROVED" ? "bg-emerald-50 text-emerald-700" : latestLoan.status === "REJECTED" ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-700"}`}
                   >
                     {latestLoan.status}
                   </span>
-                </p>
-                {latestLoan.purpose && (
-                  <p className="text-sm text-gray-400 mt-0.5">
-                    Purpose: {latestLoan.purpose}
-                  </p>
-                )}
+                </div>
                 {latestLoan.adminNote && (
-                  <p className="text-sm text-gray-500 mt-1 italic">
-                    Admin note: {latestLoan.adminNote}
+                  <p className="text-sm text-slate-500 mt-2 italic">
+                    &ldquo;{latestLoan.adminNote}&rdquo;
                   </p>
                 )}
               </div>
-              <div className="text-right">
-                <RiskBadge
-                  level={latestLoan.riskLevel}
-                  score={latestLoan.riskScore}
-                />
-                {latestLoan.riskScore != null && (
-                  <p className="text-sm text-gray-500 mt-2">
-                    Risk Score: {latestLoan.riskScore.toFixed(1)}/100
-                  </p>
-                )}
-              </div>
+              <RiskBadge
+                level={latestLoan.riskLevel}
+                score={latestLoan.riskScore}
+              />
             </div>
           </div>
         )}
 
-        {/* Quick Actions + Recent Transactions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+        {/* Bottom grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Quick Actions */}
+          <div className="bg-white rounded-2xl card-shadow p-5">
+            <h2 className="text-sm font-semibold text-slate-900 mb-4">
               Quick Actions
             </h2>
-            <div className="space-y-3">
-              <Link
-                href="/transactions"
-                className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
-              >
-                <div className="bg-blue-100 rounded-lg p-2">
+            <div className="space-y-2">
+              {quickActions.map((action) => (
+                <Link
+                  key={action.href}
+                  href={action.href}
+                  className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 hover:border-teal-200 hover:bg-teal-50/50 transition-colors group"
+                >
+                  <div
+                    className={`${action.iconBg} w-9 h-9 rounded-lg flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform`}
+                  >
+                    {action.icon}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-slate-800">
+                      {action.title}
+                    </p>
+                    <p className="text-xs text-slate-400">{action.sub}</p>
+                  </div>
                   <svg
-                    className="w-4 h-4 text-blue-600"
+                    className="w-4 h-4 text-slate-300 ml-auto"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -307,140 +410,86 @@ export default function DashboardPage() {
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth={2}
-                      d="M12 4v16m8-8H4"
+                      d="M9 5l7 7-7 7"
                     />
                   </svg>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-900">
-                    Add Transaction
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    Record income or expense
-                  </p>
-                </div>
-              </Link>
-              <Link
-                href="/loan/apply"
-                className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
-              >
-                <div className="bg-green-100 rounded-lg p-2">
-                  <svg
-                    className="w-4 h-4 text-green-600"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-900">
-                    Apply for Loan
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    Submit a new loan application
-                  </p>
-                </div>
-              </Link>
-              <Link
-                href="/loan/status"
-                className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
-              >
-                <div className="bg-purple-100 rounded-lg p-2">
-                  <svg
-                    className="w-4 h-4 text-purple-600"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-900">
-                    View Loan Status
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    Check your loan applications
-                  </p>
-                </div>
-              </Link>
+                </Link>
+              ))}
             </div>
           </div>
 
           {/* Recent Transactions */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="bg-white rounded-2xl card-shadow p-5">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">
+              <h2 className="text-sm font-semibold text-slate-900">
                 Recent Transactions
               </h2>
               <Link
                 href="/transactions"
-                className="text-sm text-blue-600 hover:text-blue-700"
+                className="text-xs font-medium text-teal-600 hover:text-teal-700"
               >
-                View all
+                View all →
               </Link>
             </div>
             {transactions.length === 0 ? (
-              <p className="text-sm text-gray-500 text-center py-4">
-                No transactions yet
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {transactions.slice(0, 5).map((tx) => (
-                  <div
-                    key={tx.id}
-                    className="flex items-center justify-between"
+              <div className="text-center py-8">
+                <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <svg
+                    className="w-5 h-5 text-slate-400"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
                   >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`w-8 h-8 rounded-full flex items-center justify-center ${tx.type === "INCOME" ? "bg-green-100" : "bg-red-100"}`}
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                    />
+                  </svg>
+                </div>
+                <p className="text-sm text-slate-400">No transactions yet</p>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {transactions.slice(0, 5).map((tx) => (
+                  <div key={tx.id} className="flex items-center gap-3 py-2">
+                    <div
+                      className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${tx.type === "INCOME" ? "bg-emerald-50" : "bg-red-50"}`}
+                    >
+                      <svg
+                        className={`w-4 h-4 ${tx.type === "INCOME" ? "text-emerald-500" : "text-red-400"}`}
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
                       >
-                        <svg
-                          className={`w-4 h-4 ${tx.type === "INCOME" ? "text-green-600" : "text-red-600"}`}
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          {tx.type === "INCOME" ? (
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M7 11l5-5m0 0l5 5m-5-5v12"
-                            />
-                          ) : (
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M17 13l-5 5m0 0l-5-5m5 5V6"
-                            />
-                          )}
-                        </svg>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">
-                          {tx.description || tx.type}
-                        </p>
-                        <p className="text-xs text-gray-400">
-                          {formatDate(tx.transactionDate)}
-                        </p>
-                      </div>
+                        {tx.type === "INCOME" ? (
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M7 11l5-5m0 0l5 5m-5-5v12"
+                          />
+                        ) : (
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M17 13l-5 5m0 0l-5-5m5 5V6"
+                          />
+                        )}
+                      </svg>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-slate-800 truncate">
+                        {tx.description || tx.type}
+                      </p>
+                      <p className="text-xs text-slate-400">
+                        {formatDate(tx.transactionDate)}
+                      </p>
                     </div>
                     <span
-                      className={`text-sm font-semibold ${tx.type === "INCOME" ? "text-green-600" : "text-red-600"}`}
+                      className={`text-sm font-semibold shrink-0 ${tx.type === "INCOME" ? "text-emerald-600" : "text-red-500"}`}
                     >
                       {tx.type === "INCOME" ? "+" : "-"}
                       {formatCurrency(tx.amount)}
