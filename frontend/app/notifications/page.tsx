@@ -39,7 +39,7 @@ export default function NotificationsPage() {
         notificationApi.getAll(),
         notificationApi.getUnreadCount(),
       ]);
-      setNotifications(notifRes.data.data || []);
+      setNotifications(notifRes.data.data?.content || []);
       setUnreadCount(countRes.data.data ?? 0);
     } catch {
       // silently fail — page still renders
