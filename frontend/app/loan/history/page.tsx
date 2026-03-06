@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "../../../context/AuthContext";
 import Sidebar from "../../../components/Sidebar";
-import LoanCard from "../../../components/LoanCard";
+import RiskBadge from "../../../components/RiskBadge";
 import { loanApi } from "../../../services/api";
 import { Loan } from "../../../types";
+import { formatCurrency, formatDate } from "../../../utils/format";
 
 export default function LoanHistoryPage() {
   const { user, isLoading } = useAuth();
@@ -15,152 +16,114 @@ export default function LoanHistoryPage() {
   const [loans, setLoans] = useState<Loan[]>([]);
   const [dataLoading, setDataLoading] = useState(false);
   const [dataError, setDataError] = useState("");
-  const [filter, setFilter] = useState<
-    "ALL" | "PENDING" | "APPROVED" | "REJECTED"
-  >("ALL");
+  const [filter, setFilter] = useState<"ALL" | "PENDING" | "APPROVED" | "REJECTED">("ALL");
 
-  useEffect(() => {
-    if (!isLoading && !user) {
-      router.push("/login");
-    }
-  }, [user, isLoading, router]);
+  useEffect(() => { if (!isLoading && !user) router.push("/login"); }, [user, isLoading, router]);
 
   useEffect(() => {
     if (user) {
       setDataLoading(true);
-      loanApi
-        .getMyLoans()
+      loanApi.getMyLoans()
         .then((res) => setLoans(res.data.data || []))
-        .catch((err) => {
-          console.error("Failed to fetch loans", err);
-          setDataError("Failed to load loan history. Please refresh.");
-        })
+        .catch(() => setDataError("Failed to load loan history. Please refresh."))
         .finally(() => setDataLoading(false));
     }
   }, [user]);
 
-  const filteredLoans =
-    filter === "ALL" ? loans : loans.filter((l) => l.status === filter);
+  const filteredLoans = filter === "ALL" ? loans : loans.filter((l) => l.status === filter);
 
-  if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="animate-spin rounded-full h-10 w-10 border-2 border-teal-500 border-t-transparent"></div>
-      </div>
-    );
-  }
+  const riskColor = (level?: string) => {
+    if (level === "LOW") return "text-emerald-600 bg-emerald-50";
+    if (level === "MEDIUM") return "text-amber-600 bg-amber-50";
+    return "text-red-600 bg-red-50";
+  };
+
+  if (isLoading) return (
+    <div className="flex min-h-screen items-center justify-center bg-slate-50">
+      <div className="animate-spin rounded-full h-10 w-10 border-2 border-teal-500 border-t-transparent" />
+    </div>
+  );
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-slate-50">
       <Sidebar />
-      <main className="flex-1 p-8">
-        {dataError && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm mb-6">
-            {dataError}
-          </div>
-        )}
-        <div className="flex items-center justify-between mb-8">
+      <main className="flex-1 p-6 lg:p-8 overflow-auto">
+        <div className="flex items-center justify-between mb-8 animate-fade-in">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Loan History</h1>
-            <p className="text-gray-500 mt-1">
-              All your loan applications and their outcomes
-            </p>
+            <h1 className="text-2xl font-bold text-slate-900">Loan History</h1>
+            <p className="text-slate-500 mt-1 text-sm">All your loan applications and their outcomes</p>
           </div>
-          <Link
-            href="/loan/apply"
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 4v16m8-8H4"
-              />
+          <Link href="/loan/apply"
+            className="flex items-center gap-2 px-4 py-2 gradient-teal text-white text-sm font-semibold rounded-xl shadow-sm hover:opacity-90 transition-all">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
             New Application
           </Link>
         </div>
 
-        {/* Summary Stats */}
-        <div className="grid grid-cols-3 gap-6 mb-8">
-          {(["PENDING", "APPROVED", "REJECTED"] as const).map((status) => {
-            const count = loans.filter((l) => l.status === status).length;
-            const colors = {
-              PENDING: "bg-yellow-50 border-yellow-200 text-yellow-700",
-              APPROVED: "bg-green-50 border-green-200 text-green-700",
-              REJECTED: "bg-red-50 border-red-200 text-red-700",
-            };
-            return (
-              <div
-                key={status}
-                className={`rounded-xl border p-4 ${colors[status]}`}
-              >
-                <p className="text-sm font-medium">{status}</p>
-                <p className="text-2xl font-bold mt-1">{count}</p>
-              </div>
-            );
-          })}
-        </div>
+        {dataError && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm mb-6">{dataError}</div>}
 
         {/* Filter Tabs */}
         <div className="flex gap-2 mb-6">
           {(["ALL", "PENDING", "APPROVED", "REJECTED"] as const).map((f) => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                filter === f
-                  ? "bg-blue-600 text-white"
-                  : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
-              }`}
-            >
-              {f}{" "}
-              {f === "ALL"
-                ? `(${loans.length})`
-                : `(${loans.filter((l) => l.status === f).length})`}
+            <button key={f} onClick={() => setFilter(f)}
+              className={`px-4 py-2 text-sm font-medium rounded-xl transition-all ${filter === f ? "gradient-teal text-white shadow-sm" : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"}`}>
+              {f} ({f === "ALL" ? loans.length : loans.filter((l) => l.status === f).length})
             </button>
           ))}
         </div>
 
-        {/* Loans Grid */}
-        {filteredLoans.length === 0 ? (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
-            <svg
-              className="w-12 h-12 text-gray-300 mx-auto mb-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1}
-                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            <p className="text-gray-500 mb-4">
-              {filter === "ALL"
-                ? "No loan applications yet."
-                : `No ${filter.toLowerCase()} loans.`}
-            </p>
-            <Link
-              href="/loan/apply"
-              className="text-blue-600 hover:text-blue-700 text-sm font-medium"
-            >
-              Apply for your first loan →
-            </Link>
+        {/* Loans Table */}
+        {dataLoading ? (
+          <div className="flex justify-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-2 border-teal-500 border-t-transparent" />
+          </div>
+        ) : filteredLoans.length === 0 ? (
+          <div className="bg-white rounded-2xl card-shadow p-12 text-center">
+            <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
+              <svg className="w-6 h-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <p className="text-slate-500 text-sm mb-3">{filter === "ALL" ? "No loan applications yet." : `No ${filter.toLowerCase()} loans.`}</p>
+            <Link href="/loan/apply" className="text-teal-600 hover:text-teal-700 text-sm font-medium">Apply for your first loan →</Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {filteredLoans.map((loan) => (
-              <LoanCard key={loan.id} loan={loan} />
-            ))}
+          <div className="bg-white rounded-2xl card-shadow overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 border-b border-slate-100">
+                <tr>
+                  {["Amount", "Purpose", "Risk Score", "Status", "Applied Date", "Decision Date", "Note"].map((h) => (
+                    <th key={h} className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {filteredLoans.map((loan) => (
+                  <tr key={loan.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-5 py-3 font-semibold text-slate-900">{formatCurrency(loan.loanAmount)}</td>
+                    <td className="px-5 py-3 text-slate-500 max-w-32 truncate">{loan.purpose || "—"}</td>
+                    <td className="px-5 py-3">
+                      <RiskBadge level={loan.riskLevel} score={loan.riskScore} />
+                    </td>
+                    <td className="px-5 py-3">
+                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+                        loan.status === "APPROVED" ? "bg-emerald-100 text-emerald-700"
+                        : loan.status === "REJECTED" ? "bg-red-100 text-red-700"
+                        : "bg-amber-100 text-amber-700"}`}>
+                        {loan.status}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3 text-slate-400 text-xs whitespace-nowrap">{formatDate(loan.createdAt)}</td>
+                    <td className="px-5 py-3 text-slate-400 text-xs whitespace-nowrap">
+                      {loan.updatedAt && loan.updatedAt !== loan.createdAt ? formatDate(loan.updatedAt) : "—"}
+                    </td>
+                    <td className="px-5 py-3 text-slate-500 text-xs max-w-40 truncate italic">{loan.adminNote || "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </main>

@@ -4,28 +4,22 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
 const api = axios.create({
   baseURL: API_URL,
-  headers: {
-    "Content-Type": "application/json",
-  },
-  // Send cookies (accessToken, refreshToken) on every request
+  headers: { "Content-Type": "application/json" },
   withCredentials: true,
 });
 
-// Request interceptor — attach JWT token from localStorage as Bearer header
+// Request interceptor — attach JWT from localStorage
 api.interceptors.request.use(
   (config) => {
     if (typeof window !== "undefined") {
       const token = localStorage.getItem("accessToken");
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
+      if (token) config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
   (error) => Promise.reject(error),
 );
 
-// Track whether a refresh is in progress to avoid parallel refresh calls
 let isRefreshing = false;
 let pendingRequests: Array<(token: string) => void> = [];
 
@@ -34,135 +28,137 @@ const processQueue = (token: string) => {
   pendingRequests = [];
 };
 
-// Response interceptor — auto-refresh access token on 401, then retry
+// Response interceptor — auto-refresh on 401
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-
-    // Only attempt refresh once per request (prevent infinite loops)
     if (
       axios.isAxiosError(error) &&
       error.response?.status === 401 &&
       !originalRequest._retry &&
-      // Don't retry refresh or login endpoints
       !originalRequest.url?.includes("/api/auth/refresh") &&
       !originalRequest.url?.includes("/api/auth/login")
     ) {
       if (isRefreshing) {
-        // Queue this request until refresh completes
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
           pendingRequests.push((token: string) => {
             originalRequest.headers.Authorization = `Bearer ${token}`;
             resolve(api(originalRequest));
           });
         });
       }
-
       originalRequest._retry = true;
       isRefreshing = true;
-
       try {
-        // Attempt token refresh using the httpOnly refreshToken cookie
-        const refreshResponse = await api.post("/api/auth/refresh");
-        // On success the backend sets a new accessToken cookie.
-        // We also need to update localStorage if the refresh response contains the new token.
-        // The backend's /refresh endpoint only sets a cookie — we need to re-fetch /me
-        // to confirm the session is still valid. For now, just clear localStorage token
-        // so the next request falls back to the cookie.
-        if (typeof window !== "undefined") {
-          // Remove stale token; the cookie will carry auth for the retried request
-          localStorage.removeItem("accessToken");
-        }
-
-        // Re-attempt /me to get a fresh token value from the response (if available)
-        // The interceptor will now use the cookie for the retry
+        await api.post("/api/auth/refresh");
+        if (typeof window !== "undefined") localStorage.removeItem("accessToken");
         delete originalRequest.headers.Authorization;
         processQueue("");
         return api(originalRequest);
-      } catch (refreshError) {
-        // Refresh failed — clear session and redirect to login
+      } catch {
         pendingRequests = [];
         if (typeof window !== "undefined") {
           localStorage.removeItem("accessToken");
           localStorage.removeItem("user");
           window.location.href = "/login";
         }
-        return Promise.reject(refreshError);
+        return Promise.reject(error);
       } finally {
         isRefreshing = false;
       }
     }
-
     return Promise.reject(error);
   },
 );
 
-// Auth API
+// ─── Auth API ────────────────────────────────────────────────────────────────
 export const authApi = {
-  register: (data: {
-    username: string;
-    email: string;
-    password: string;
-    confirmPassword: string;
-  }) => api.post("/api/auth/register", data),
-  login: (data: { email: string; password: string }) =>
-    api.post("/api/auth/login", data),
+  register: (data: { username: string; email: string; password: string; confirmPassword: string }) =>
+    api.post("/api/auth/register", data),
+  login: (data: { email: string; password: string }) => api.post("/api/auth/login", data),
   me: () => api.get("/api/auth/me"),
   logout: () => api.post("/api/auth/logout"),
   refresh: () => api.post("/api/auth/refresh"),
-  updateProfile: (data: {
-    username?: string;
-    phoneNumber?: string;
-    address?: string;
-    bio?: string;
-    photo?: string;
-  }) => api.put("/api/auth/profile", data),
+  updateProfile: (data: { username?: string; phoneNumber?: string; address?: string; bio?: string; photo?: string }) =>
+    api.put("/api/auth/profile", data),
 };
 
-// Transaction API
+// ─── Transaction API ─────────────────────────────────────────────────────────
 export const transactionApi = {
-  add: (data: {
-    type: "INCOME" | "EXPENSE";
-    amount: number;
-    description?: string;
-  }) => api.post("/api/transactions", data),
-  getAll: () => api.get("/api/transactions"),
+  add: (data: { type: "INCOME" | "EXPENSE"; amount: number; description?: string }) =>
+    api.post("/api/transactions", data),
+  getAll: (params?: { type?: string; from?: string; to?: string }) =>
+    api.get("/api/transactions", { params }),
+  exportCSV: () =>
+    api.get("/api/users/me/transactions/export", { responseType: "blob" }),
 };
 
-// Loan API
+// ─── Loan API ────────────────────────────────────────────────────────────────
 export const loanApi = {
-  apply: (data: {
-    loanAmount: number;
-    monthlyIncome: number;
-    monthlyExpense: number;
-    purpose?: string;
-  }) => api.post("/api/loans/apply", data),
+  apply: (data: { loanAmount: number; monthlyIncome: number; monthlyExpense: number; purpose?: string }) =>
+    api.post("/api/loans/apply", data),
   getMyLoans: () => api.get("/api/loans/my"),
+  getLoanById: (id: string) => api.get(`/api/users/me/loans/${id}`),
 };
 
-// Admin API
+// ─── Notification API (User) ─────────────────────────────────────────────────
+export const notificationApi = {
+  getAll: (params?: { page?: number; size?: number }) =>
+    api.get("/api/users/me/notifications", { params }),
+  markRead: (id: string) => api.put(`/api/users/me/notifications/${id}/read`),
+  markAllRead: () => api.put("/api/users/me/notifications/read-all"),
+  getUnreadCount: () => api.get("/api/users/me/notifications/unread-count"),
+};
+
+// ─── Admin API ───────────────────────────────────────────────────────────────
 export const adminApi = {
+  // Loans
   getAllLoans: () => api.get("/api/admin/loans"),
   getPendingLoans: () => api.get("/api/admin/loans/pending"),
-  getLoansFiltered: (params: {
-    page?: number;
-    size?: number;
-    status?: string;
-    riskLevel?: string;
-    from?: string;
-    to?: string;
-  }) => api.get("/api/admin/loans/paged", { params }),
+  getLoansFiltered: (params: { page?: number; size?: number; status?: string; riskLevel?: string; from?: string; to?: string }) =>
+    api.get("/api/admin/loans/paged", { params }),
+  getLoanById: (loanId: string) => api.get(`/api/admin/loans/${loanId}`),
   decideLoan: (loanId: string, data: { decision: string; note?: string }) =>
     api.post(`/api/admin/loans/${loanId}/decide`, data),
+  bulkApprove: (loanIds: string[], note?: string) => api.post("/api/admin/loans/bulk-approve", { loanIds, note }),
+  bulkReject: (loanIds: string[], note: string) =>
+    api.post("/api/admin/loans/bulk-reject", { loanIds, note }),
+  exportLoans: () => api.get("/api/admin/loans/export", { responseType: "blob" }),
+
+  // Users
+  getUsers: (params?: { page?: number; size?: number; search?: string; status?: string }) =>
+    api.get("/api/admin/users", { params }),
+  getUserProfile: (userId: number | string) => api.get(`/api/admin/users/${userId}`),
+  createUser: (data: { username: string; email: string; role: string }) =>
+    api.post("/api/admin/users", data),
+  updateUser: (userId: number | string, data: { username?: string; email?: string; isActive?: boolean }) =>
+    api.put(`/api/admin/users/${userId}`, data),
+  deactivateUser: (userId: number | string) => api.put(`/api/admin/users/${userId}/deactivate`),
+  reactivateUser: (userId: number | string) => api.put(`/api/admin/users/${userId}/reactivate`),
+  getUserLoans: (userId: number | string) => api.get(`/api/admin/users/${userId}/loans`),
+  getUserTransactions: (userId: number | string, params?: { page?: number; size?: number; type?: string }) =>
+    api.get(`/api/admin/users/${userId}/transactions`, { params }),
+  exportUsers: () => api.get("/api/admin/users/export", { responseType: "blob" }),
+
+  // Analytics
   getAnalytics: () => api.get("/api/admin/analytics"),
-  getUsers: () => api.get("/api/admin/users"),
-  getUserProfile: (userId: number | string) =>
-    api.get(`/api/admin/users/${userId}`),
-  getAuditLogs: () => api.get("/api/admin/audit-logs"),
+  getAnalyticsSummary: () => api.get("/api/admin/analytics/summary"),
+  getUserGrowth: () => api.get("/api/admin/analytics/user-growth"),
+  exportAnalytics: () => api.get("/api/admin/analytics/export", { responseType: "blob" }),
+
+  // Audit Logs
+  getAuditLogs: (params?: { page?: number; size?: number; action?: string; from?: string; to?: string }) =>
+    api.get("/api/admin/audit-logs", { params }),
+
+  // Notifications
+  sendNotificationToUser: (userId: number | string, data: { title: string; message: string }) =>
+    api.post(`/api/admin/notifications/user/${userId}`, data),
+  broadcastNotification: (data: { title: string; message: string }) =>
+    api.post("/api/admin/notifications/broadcast", data),
 };
 
-// Dashboard summary (user's own financial summary)
+// ─── Dashboard API ───────────────────────────────────────────────────────────
 export const dashboardApi = {
   getSummary: () => api.get("/api/dashboard/summary"),
 };

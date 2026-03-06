@@ -65,6 +65,22 @@ export default function AdminUsersPage() {
               {filteredUsers.length} of {users.length} registered users
             </p>
           </div>
+          <button
+            onClick={async () => {
+              try {
+                const res = await adminApi.exportUsers();
+                const url = window.URL.createObjectURL(new Blob([res.data]));
+                const a = document.createElement("a"); a.href = url; a.download = "users.csv"; a.click();
+                window.URL.revokeObjectURL(url);
+              } catch { /* ignore */ }
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Export CSV
+          </button>
         </div>
 
         {/* Search */}

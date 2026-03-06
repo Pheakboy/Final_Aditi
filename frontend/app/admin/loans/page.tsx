@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useAuth } from "../../../context/AuthContext";
 import Sidebar from "../../../components/Sidebar";
 import LoanCard from "../../../components/LoanCard";
@@ -138,39 +139,31 @@ export default function AdminLoansPage() {
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setViewMode("cards")}
-              className={`p-2 rounded-lg border transition-colors ${viewMode === "cards" ? "bg-blue-50 border-blue-200 text-blue-600" : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"}`}
+              onClick={async () => {
+                try {
+                  const res = await adminApi.exportLoans();
+                  const url = window.URL.createObjectURL(new Blob([res.data]));
+                  const a = document.createElement("a"); a.href = url; a.download = "loans.csv"; a.click();
+                  window.URL.revokeObjectURL(url);
+                } catch { /* ignore */ }
+              }}
+              className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
             >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
-                />
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              Export CSV
+            </button>
+            <button onClick={() => setViewMode("cards")}
+              className={`p-2 rounded-lg border transition-colors ${viewMode === "cards" ? "bg-blue-50 border-blue-200 text-blue-600" : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"}`}>
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
               </svg>
             </button>
-            <button
-              onClick={() => setViewMode("table")}
-              className={`p-2 rounded-lg border transition-colors ${viewMode === "table" ? "bg-blue-50 border-blue-200 text-blue-600" : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"}`}
-            >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 6h16M4 10h16M4 14h16M4 18h16"
-                />
+            <button onClick={() => setViewMode("table")}
+              className={`p-2 rounded-lg border transition-colors ${viewMode === "table" ? "bg-blue-50 border-blue-200 text-blue-600" : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"}`}>
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
               </svg>
             </button>
           </div>
@@ -289,9 +282,8 @@ export default function AdminLoansPage() {
                   <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">
                     Date
                   </th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">
-                    Actions
-                  </th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Actions</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Detail</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -351,6 +343,9 @@ export default function AdminLoansPage() {
                             </button>
                           </div>
                         )}
+                      </td>
+                      <td className="px-4 py-3">
+                        <Link href={`/admin/loans/${loan.id}`} className="text-xs text-blue-600 hover:text-blue-800 font-medium">View →</Link>
                       </td>
                     </tr>
                   );

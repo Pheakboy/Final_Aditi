@@ -88,8 +88,19 @@ export interface AuditLog {
   id: number;
   action: string;
   performedBy: string;
+  targetType?: string;
   details?: string;
+  ipAddress?: string;
   timestamp: string;
+}
+
+export interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  type: "LOAN_APPROVED" | "LOAN_REJECTED" | "BROADCAST" | "GENERAL";
+  isRead: boolean;
+  createdAt: string;
 }
 
 export interface AnalyticsData {
@@ -131,60 +142,4 @@ export interface DashboardSummary {
   pendingLoans: number;
   approvedLoans: number;
   rejectedLoans: number;
-}
-
-export interface AuthResponse {
-  type: string;
-  accessToken: string;
-  refreshToken: string;
-  roles: string[];
-}
-
-export interface Transaction {
-  id: string;
-  type: "INCOME" | "EXPENSE";
-  amount: number;
-  description?: string;
-  transactionDate: string;
-  createdAt: string;
-}
-
-export interface Loan {
-  id: string;
-  loanAmount: number;
-  monthlyIncome: number;
-  monthlyExpense: number;
-  riskScore?: number;
-  riskLevel?: "LOW" | "MEDIUM" | "HIGH";
-  status: "PENDING" | "APPROVED" | "REJECTED";
-  purpose?: string;
-  adminNote?: string;
-  createdAt: string;
-  updatedAt: string;
-  applicantEmail?: string;
-  applicantUsername?: string;
-}
-
-export interface ApiResponse<T> {
-  success: boolean;
-  message: string;
-  data: T;
-}
-
-export interface AdminUser {
-  id: number;
-  username: string;
-  email: string;
-  roles: string[];
-  phoneNumber?: string;
-  address?: string;
-  enabled: boolean;
-}
-
-export interface AuditLog {
-  id: number;
-  action: string;
-  performedBy: string;
-  details?: string;
-  timestamp: string;
 }
