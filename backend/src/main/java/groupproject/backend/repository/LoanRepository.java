@@ -28,6 +28,7 @@ public interface LoanRepository extends JpaRepository<Loan, UUID>, JpaSpecificat
 
     long countByStatus(LoanStatus status);
     long countByRiskLevel(RiskLevel riskLevel);
+    long countByUser(User user);
 
     // JPQL: works with both H2 (dev) and PostgreSQL (prod)
     @Query("SELECT MONTH(l.createdAt), YEAR(l.createdAt), COUNT(l) FROM Loan l " +

@@ -18,10 +18,19 @@ public class AuditLogServiceImpl implements AuditLogService {
 
     @Override
     public void log(String action, String performedBy, String details) {
+        log(action, performedBy, details, null, null, null);
+    }
+
+    @Override
+    public void log(String action, String performedBy, String details,
+                    String targetId, String targetType, String ipAddress) {
         AuditLog entry = AuditLog.builder()
                 .action(action)
                 .performedBy(performedBy)
                 .details(details)
+                .targetId(targetId)
+                .targetType(targetType)
+                .ipAddress(ipAddress)
                 .build();
         auditLogRepository.save(entry);
     }

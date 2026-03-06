@@ -15,6 +15,7 @@ import groupproject.backend.response.PagedResponse;
 public interface LoanService {
     ApiResponse<LoanResponseDTO> applyLoan(Authentication authentication, LoanRequestDTO request);
     ApiResponse<List<LoanResponseDTO>> getMyLoans(Authentication authentication);
+    ApiResponse<LoanResponseDTO> getLoanByIdForUser(Authentication authentication, UUID loanId);
     ApiResponse<List<LoanResponseDTO>> getAllLoans();
     ApiResponse<List<LoanResponseDTO>> getPendingLoans();
     ApiResponse<LoanResponseDTO> decideLoan(Authentication authentication, UUID loanId, LoanDecisionRequestDTO request);

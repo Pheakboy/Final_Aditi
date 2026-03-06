@@ -1,21 +1,18 @@
 package groupproject.backend.controller;
 
-import java.util.List;
-
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
 import groupproject.backend.dto.TransactionRequestDTO;
 import groupproject.backend.dto.TransactionResponseDTO;
 import groupproject.backend.response.ApiResponse;
 import groupproject.backend.service.TransactionService;
 import jakarta.validation.Valid;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/transactions")
@@ -37,7 +34,10 @@ public class TransactionController {
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<TransactionResponseDTO>>> getMyTransactions(
-            Authentication authentication) {
-        return ResponseEntity.ok(transactionService.getMyTransactions(authentication));
+            Authentication authentication,
+            @RequestParam(required = false) String type,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        return ResponseEntity.ok(transactionService.getMyTransactionsFiltered(authentication, type, from, to));
     }
 }

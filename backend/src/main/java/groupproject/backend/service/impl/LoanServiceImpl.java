@@ -64,6 +64,7 @@ public class LoanServiceImpl implements LoanService {
 
     @Override
     @Transactional
+    @SuppressWarnings("null")
     public ApiResponse<LoanResponseDTO> applyLoan(Authentication authentication, LoanRequestDTO request) {
         User user = userRepository.findByEmail(authentication.getName())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
@@ -88,7 +89,7 @@ public class LoanServiceImpl implements LoanService {
                 .purpose(request.getPurpose())
                 .build();
 
-        Loan saved = Objects.requireNonNull(loanRepository.save(loan), "Failed to save loan");
+        Loan saved = loanRepository.save(loan);
 
         auditLogService.log("LOAN_APPLICATION", user.getEmail(),
                 "Applied for loan of " + request.getLoanAmount() + ", risk: " + riskLevel + " (" + riskScore + ")");
@@ -108,6 +109,19 @@ public class LoanServiceImpl implements LoanService {
                 .collect(Collectors.toList());
 
         return ApiResponse.success(loans, "Loans retrieved");
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ApiResponse<LoanResponseDTO> getLoanByIdForUser(Authentication authentication, UUID loanId) {
+        User user = userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        Loan loan = loanRepository.findById(Objects.requireNonNull(loanId))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Loan not found"));
+        if (!loan.getUser().getId().equals(user.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
+        }
+        return ApiResponse.success(mapToDTO(loan), "Loan retrieved");
     }
 
     @Override
@@ -134,6 +148,7 @@ public class LoanServiceImpl implements LoanService {
 
     @Override
     @Transactional
+    @SuppressWarnings("null")
     public ApiResponse<LoanResponseDTO> decideLoan(Authentication authentication, UUID loanId, LoanDecisionRequestDTO request) {
         User admin = userRepository.findByEmail(authentication.getName())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
@@ -168,7 +183,7 @@ public class LoanServiceImpl implements LoanService {
                 .note(request.getNote())
                 .build();
 
-        Objects.requireNonNull(loanDecisionRepository.save(loanDecision), "Failed to save loan decision");
+        loanDecisionRepository.save(loanDecision);
 
         auditLogService.log("LOAN_" + decision.name(), admin.getEmail(),
                 "Loan " + loanId + " " + decision.name().toLowerCase() + " by admin");

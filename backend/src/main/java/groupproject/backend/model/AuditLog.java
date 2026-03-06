@@ -26,8 +26,17 @@ public class AuditLog {
     @Column(name = "performed_by", nullable = false)
     private String performedBy;
 
+    @Column(name = "target_id")
+    private String targetId;
+
+    @Column(name = "target_type")
+    private String targetType;
+
     @Column(length = 1000)
     private String details;
+
+    @Column(name = "ip_address")
+    private String ipAddress;
 
     @Column(nullable = false)
     private LocalDateTime timestamp;
