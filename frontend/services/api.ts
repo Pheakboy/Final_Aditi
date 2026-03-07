@@ -121,6 +121,9 @@ export const adminApi = {
   getLoanById: (loanId: string) => api.get(`/api/admin/loans/${loanId}`),
   decideLoan: (loanId: string, data: { decision: string; note?: string }) =>
     api.post(`/api/admin/loans/${loanId}/decide`, data),
+  deleteLoan: (loanId: string) => api.delete(`/api/admin/loans/${loanId}`),
+  updateLoanNote: (loanId: string, adminNote: string) =>
+    api.put(`/api/admin/loans/${loanId}/note`, { adminNote }),
   bulkApprove: (loanIds: string[], note?: string) => api.post("/api/admin/loans/bulk-approve", { loanIds, note }),
   bulkReject: (loanIds: string[], note: string) =>
     api.post("/api/admin/loans/bulk-reject", { loanIds, note }),
@@ -156,6 +159,9 @@ export const adminApi = {
     api.post(`/api/admin/notifications/user/${userId}`, data),
   broadcastNotification: (data: { title: string; message: string }) =>
     api.post("/api/admin/notifications/broadcast", data),
+  getAdminNotifications: (params?: { page?: number; size?: number }) =>
+    api.get("/api/admin/notifications", { params }),
+  deleteNotification: (id: string) => api.delete(`/api/admin/notifications/${id}`),
 };
 
 // ─── Dashboard API ───────────────────────────────────────────────────────────

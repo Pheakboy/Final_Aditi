@@ -65,3 +65,15 @@ frontend/next-env.d.ts
 .vscode/
 *.log
 *.pem
+
+#################################################
+# ============= PROJECT SPECIFIC ================
+#################################################
+
+# Dev/planning docs — not needed in repo
+script.md
+database-schema.sql
+
+# OS junk
+Thumbs.db
+desktop.ini

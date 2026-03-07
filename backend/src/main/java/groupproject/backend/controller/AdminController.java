@@ -51,6 +51,7 @@ import groupproject.backend.model.enums.TransactionType;
 import groupproject.backend.repository.AuditLogRepository;
 import groupproject.backend.repository.LoanDecisionRepository;
 import groupproject.backend.repository.LoanRepository;
+import groupproject.backend.repository.NotificationRepository;
 import groupproject.backend.repository.RoleRepository;
 import groupproject.backend.repository.TransactionRepository;
 import groupproject.backend.repository.UserRepository;
@@ -63,6 +64,7 @@ import groupproject.backend.service.NotificationService;
 @RestController
 @RequestMapping("/api/admin")
 @PreAuthorize("hasRole('ADMIN')")
+@SuppressWarnings({"null", "unchecked"})
 public class AdminController {
 
     // ─── Dependencies ─────────────────────────────────────────────────────────
@@ -75,6 +77,7 @@ public class AdminController {
     private final AuditLogService auditLogService;
     private final AuditLogRepository auditLogRepository;
     private final NotificationService notificationService;
+    private final NotificationRepository notificationRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
 
@@ -86,6 +89,7 @@ public class AdminController {
                            AuditLogService auditLogService,
                            AuditLogRepository auditLogRepository,
                            NotificationService notificationService,
+                           NotificationRepository notificationRepository,
                            RoleRepository roleRepository,
                            PasswordEncoder passwordEncoder) {
         this.loanService = loanService;
@@ -96,6 +100,7 @@ public class AdminController {
         this.auditLogService = auditLogService;
         this.auditLogRepository = auditLogRepository;
         this.notificationService = notificationService;
+        this.notificationRepository = notificationRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
     }
@@ -154,6 +159,45 @@ public class AdminController {
                     approved ? NotificationType.LOAN_APPROVED : NotificationType.LOAN_REJECTED);
         }
         return ResponseEntity.ok(result);
+    }
+
+    // ─── Loan Delete ──────────────────────────────────────────────────────────
+
+    @DeleteMapping("/loans/{loanId}")
+    @Transactional
+    public ResponseEntity<ApiResponse<Void>> deleteLoan(
+            Authentication authentication,
+            @PathVariable UUID loanId) {
+        Loan loan = loanRepository.findById(loanId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Loan not found"));
+        // Remove related decisions first to satisfy FK constraints
+        loanDecisionRepository.deleteAll(loanDecisionRepository.findByLoanOrderByDecidedAtDesc(loan));
+        loanRepository.delete(loan);
+        auditLogService.log("ADMIN_DELETED_LOAN", authentication.getName(),
+                "Deleted loan " + loanId, loanId.toString(), "LOAN", null);
+        return ResponseEntity.ok(ApiResponse.success(null, "Loan deleted"));
+    }
+
+    // ─── Loan Update Note ─────────────────────────────────────────────────────
+
+    @Data
+    public static class UpdateLoanNoteRequest {
+        private String adminNote;
+    }
+
+    @PutMapping("/loans/{loanId}/note")
+    @Transactional
+    public ResponseEntity<ApiResponse<LoanResponseDTO>> updateLoanNote(
+            Authentication authentication,
+            @PathVariable UUID loanId,
+            @RequestBody UpdateLoanNoteRequest req) {
+        Loan loan = loanRepository.findById(loanId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Loan not found"));
+        loan.setAdminNote(req.getAdminNote());
+        Loan saved = loanRepository.save(loan);
+        auditLogService.log("ADMIN_UPDATED_LOAN_NOTE", authentication.getName(),
+                "Updated note for loan " + loanId, loanId.toString(), "LOAN", null);
+        return ResponseEntity.ok(ApiResponse.success(mapLoanToDTO(saved), "Loan note updated"));
     }
 
     // ─── Bulk Loan Actions ────────────────────────────────────────────────────
@@ -658,6 +702,49 @@ public class AdminController {
         auditLogService.log("NOTIFICATION_SENT", authentication.getName(),
                 "Sent to user " + user.getEmail() + ": " + req.getTitle(), userId.toString(), "USER", null);
         return ResponseEntity.ok(ApiResponse.success(null, "Notification sent to user"));
+    }
+
+    // ─── Admin Notification List & Delete ────────────────────────────────────
+
+    @GetMapping("/notifications")
+    @Transactional(readOnly = true)
+    public ResponseEntity<ApiResponse<PagedResponse<Map<String, Object>>>> getAllNotifications(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        org.springframework.data.domain.Page<groupproject.backend.model.Notification> notifPage =
+                notificationRepository.findAll(
+                        org.springframework.data.domain.PageRequest.of(page, size,
+                                org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt")));
+        List<Map<String, Object>> content = notifPage.getContent().stream().map(n -> {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", n.getId());
+            m.put("title", n.getTitle());
+            m.put("message", n.getMessage());
+            m.put("type", n.getType());
+            m.put("isRead", n.isRead());
+            m.put("createdAt", n.getCreatedAt());
+            m.put("recipientUsername", n.getUser().getRealUsername());
+            m.put("recipientEmail", n.getUser().getEmail());
+            return m;
+        }).collect(Collectors.toList());
+        PagedResponse<Map<String, Object>> paged = PagedResponse.<Map<String, Object>>builder()
+                .content(content).page(notifPage.getNumber()).size(notifPage.getSize())
+                .totalElements(notifPage.getTotalElements()).totalPages(notifPage.getTotalPages())
+                .last(notifPage.isLast()).build();
+        return ResponseEntity.ok(ApiResponse.success(paged, "Notifications retrieved"));
+    }
+
+    @DeleteMapping("/notifications/{id}")
+    @Transactional
+    public ResponseEntity<ApiResponse<Void>> deleteNotification(
+            Authentication authentication,
+            @PathVariable UUID id) {
+        groupproject.backend.model.Notification notif = notificationRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Notification not found"));
+        notificationRepository.delete(notif);
+        auditLogService.log("ADMIN_DELETED_NOTIFICATION", authentication.getName(),
+                "Deleted notification " + id, id.toString(), "NOTIFICATION", null);
+        return ResponseEntity.ok(ApiResponse.success(null, "Notification deleted"));
     }
 
     // ─── Helpers ──────────────────────────────────────────────────────────────

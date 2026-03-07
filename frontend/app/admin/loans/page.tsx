@@ -36,6 +36,11 @@ export default function AdminLoansPage() {
   } | null>(null);
   const [note, setNote] = useState("");
   const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
+  const [deleteModal, setDeleteModal] = useState<string | null>(null); // loanId to delete
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [editNoteModal, setEditNoteModal] = useState<{ loanId: string; currentNote: string } | null>(null);
+  const [noteEditText, setNoteEditText] = useState("");
+  const [noteEditLoading, setNoteEditLoading] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !user) router.push("/login");
@@ -109,6 +114,25 @@ export default function AdminLoansPage() {
     setRiskFilter("");
     setDateFrom("");
     setDateTo("");
+  };
+
+  const handleDelete = async (loanId: string) => {
+    setDeleteLoading(true);
+    try {
+      await adminApi.deleteLoan(loanId);
+      setDeleteModal(null);
+      await fetchLoans(currentPage);
+    } catch { /* ignore */ } finally { setDeleteLoading(false); }
+  };
+
+  const handleEditNote = async () => {
+    if (!editNoteModal) return;
+    setNoteEditLoading(true);
+    try {
+      await adminApi.updateLoanNote(editNoteModal.loanId, noteEditText);
+      setEditNoteModal(null);
+      await fetchLoans(currentPage);
+    } catch { /* ignore */ } finally { setNoteEditLoading(false); }
   };
 
   if (isLoading) {
@@ -345,7 +369,13 @@ export default function AdminLoansPage() {
                         )}
                       </td>
                       <td className="px-4 py-3">
-                        <Link href={`/admin/loans/${loan.id}`} className="text-xs text-blue-600 hover:text-blue-800 font-medium">View →</Link>
+                        <div className="flex gap-1">
+                          <Link href={`/admin/loans/${loan.id}`} className="text-xs text-blue-600 hover:text-blue-800 font-medium">View →</Link>
+                          <button onClick={() => { setEditNoteModal({ loanId: loan.id, currentNote: loan.adminNote || "" }); setNoteEditText(loan.adminNote || ""); }}
+                            className="ml-2 text-xs text-indigo-600 hover:text-indigo-800 font-medium">Edit Note</button>
+                          <button onClick={() => setDeleteModal(loan.id)}
+                            className="ml-2 text-xs text-red-500 hover:text-red-700 font-medium">Delete</button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -464,6 +494,48 @@ export default function AdminLoansPage() {
           </div>
         )}
       </main>
+
+      {/* ── Delete Confirm Modal */}
+      {deleteModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Delete Loan?</h3>
+            <p className="text-sm text-gray-500 mb-5">This action is permanent and cannot be undone.</p>
+            <div className="flex gap-3">
+              <button onClick={() => handleDelete(deleteModal)} disabled={deleteLoading}
+                className="flex-1 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors">
+                {deleteLoading ? "Deleting..." : "Delete"}
+              </button>
+              <button onClick={() => setDeleteModal(null)}
+                className="flex-1 py-2 bg-gray-100 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-200 transition-colors">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Edit Note Modal */}
+      {editNoteModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Edit Admin Note</h3>
+            <textarea value={noteEditText} onChange={e => setNoteEditText(e.target.value)} rows={4}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-4 resize-none"
+              placeholder="Add a note for this loan..." />
+            <div className="flex gap-3">
+              <button onClick={handleEditNote} disabled={noteEditLoading}
+                className="flex-1 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors">
+                {noteEditLoading ? "Saving..." : "Save Note"}
+              </button>
+              <button onClick={() => setEditNoteModal(null)}
+                className="flex-1 py-2 bg-gray-100 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-200 transition-colors">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
