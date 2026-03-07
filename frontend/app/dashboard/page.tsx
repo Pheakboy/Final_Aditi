@@ -2,13 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { useAuth } from "../../context/AuthContext";
 import Sidebar from "../../components/Sidebar";
 import RiskBadge from "../../components/RiskBadge";
+import LoadingScreen from "../../components/ui/LoadingScreen";
+import ErrorAlert from "../../components/ui/ErrorAlert";
+import StatCard from "../../components/ui/StatCard";
+import LatestLoan from "../../components/dashboard/LatestLoan";
+import QuickActions from "../../components/dashboard/QuickActions";
+import RecentTransactions from "../../components/dashboard/RecentTransactions";
 import { transactionApi, loanApi, dashboardApi } from "../../services/api";
 import { Transaction, Loan, DashboardSummary } from "../../types";
-import { formatCurrency, formatDate } from "../../utils/format";
+import { formatCurrency } from "../../utils/format";
 
 export default function DashboardPage() {
   const { user, isLoading, isAdmin } = useAuth();
@@ -56,11 +61,7 @@ export default function DashboardPage() {
   }, [user, isAdmin]);
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50">
-        <div className="animate-spin rounded-full h-10 w-10 border-2 border-teal-500 border-t-transparent"></div>
-      </div>
-    );
+    return <LoadingScreen color="border-teal-500" />;
   }
 
   const latestLoan = loans[0];
@@ -84,94 +85,6 @@ export default function DashboardPage() {
   const approvedLoans =
     summary?.approvedLoans ??
     loans.filter((l) => l.status === "APPROVED").length;
-
-  const statCards = [
-    {
-      label: "Total Income",
-      value: formatCurrency(totalIncome),
-      icon: (
-        <svg
-          className="w-5 h-5 text-white"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M7 11l5-5m0 0l5 5m-5-5v12"
-          />
-        </svg>
-      ),
-      iconBg: "gradient-emerald",
-      valueColor: "text-emerald-600",
-    },
-    {
-      label: "Total Expenses",
-      value: formatCurrency(totalExpense),
-      icon: (
-        <svg
-          className="w-5 h-5 text-white"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M17 13l-5 5m0 0l-5-5m5 5V6"
-          />
-        </svg>
-      ),
-      iconBg: "gradient-rose",
-      valueColor: "text-red-500",
-    },
-    {
-      label: "Savings Balance",
-      value: formatCurrency(savingsBalance),
-      icon: (
-        <svg
-          className="w-5 h-5 text-white"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
-          />
-        </svg>
-      ),
-      iconBg: "gradient-sky",
-      valueColor: Number(savingsBalance) >= 0 ? "text-sky-600" : "text-red-500",
-    },
-    {
-      label: "Loan Applications",
-      value: String(summary?.totalLoans ?? loans.length),
-      sub: `${pendingLoans} pending · ${approvedLoans} approved`,
-      icon: (
-        <svg
-          className="w-5 h-5 text-white"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-          />
-        </svg>
-      ),
-      iconBg: "gradient-amber",
-      valueColor: "text-slate-900",
-    },
-  ];
 
   const quickActions = [
     {
@@ -255,46 +168,97 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        {dataError && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm mb-6 flex items-center gap-2">
-            <svg
-              className="w-4 h-4 shrink-0"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-            >
-              <path
-                fillRule="evenodd"
-                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                clipRule="evenodd"
-              />
-            </svg>
-            {dataError}
-          </div>
-        )}
+        {dataError && <ErrorAlert message={dataError} />}
 
         {/* Stat Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5 mb-8">
-          {statCards.map((card) => (
-            <div
-              key={card.label}
-              className="bg-white rounded-2xl card-shadow p-5 flex items-start gap-4"
-            >
-              <div
-                className={`${card.iconBg} w-10 h-10 rounded-xl flex items-center justify-center shrink-0`}
+          <StatCard
+            label="Total Income"
+            value={formatCurrency(totalIncome)}
+            icon={
+              <svg
+                className="w-5 h-5 text-white"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
               >
-                {card.icon}
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs text-slate-500 mb-0.5">{card.label}</p>
-                <p className={`text-xl font-bold truncate ${card.valueColor}`}>
-                  {card.value}
-                </p>
-                {card.sub && (
-                  <p className="text-xs text-slate-400 mt-0.5">{card.sub}</p>
-                )}
-              </div>
-            </div>
-          ))}
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M7 11l5-5m0 0l5 5m-5-5v12"
+                />
+              </svg>
+            }
+            iconBg="gradient-emerald"
+            valueColor="text-emerald-600"
+          />
+          <StatCard
+            label="Total Expenses"
+            value={formatCurrency(totalExpense)}
+            icon={
+              <svg
+                className="w-5 h-5 text-white"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M17 13l-5 5m0 0l-5-5m5 5V6"
+                />
+              </svg>
+            }
+            iconBg="gradient-rose"
+            valueColor="text-red-500"
+          />
+          <StatCard
+            label="Savings Balance"
+            value={formatCurrency(savingsBalance)}
+            icon={
+              <svg
+                className="w-5 h-5 text-white"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+                />
+              </svg>
+            }
+            iconBg="gradient-sky"
+            valueColor={
+              Number(savingsBalance) >= 0 ? "text-sky-600" : "text-red-500"
+            }
+          />
+          <StatCard
+            label="Loan Applications"
+            value={String(summary?.totalLoans ?? loans.length)}
+            sub={`${pendingLoans} pending · ${approvedLoans} approved`}
+            icon={
+              <svg
+                className="w-5 h-5 text-white"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            }
+            iconBg="gradient-amber"
+            valueColor="text-slate-900"
+          />
         </div>
 
         {/* Secondary stats row */}
@@ -318,12 +282,10 @@ export default function DashboardPage() {
           <div className="bg-white rounded-2xl card-shadow p-5">
             <p className="text-xs text-slate-500 mb-2">Current Risk Level</p>
             {summary?.currentRiskLevel ? (
-              <>
-                <RiskBadge
-                  level={summary.currentRiskLevel as "LOW" | "MEDIUM" | "HIGH"}
-                  score={summary.currentRiskScore ?? undefined}
-                />
-              </>
+              <RiskBadge
+                level={summary.currentRiskLevel as "LOW" | "MEDIUM" | "HIGH"}
+                score={summary.currentRiskScore ?? undefined}
+              />
             ) : (
               <p className="text-slate-400 text-sm">No loan applied yet</p>
             )}
@@ -331,174 +293,12 @@ export default function DashboardPage() {
         </div>
 
         {/* Latest Loan */}
-        {latestLoan && (
-          <div className="bg-white rounded-2xl card-shadow p-5 mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-semibold text-slate-900">
-                Latest Loan Application
-              </h2>
-              <Link
-                href="/loan/status"
-                className="text-xs font-medium text-teal-600 hover:text-teal-700"
-              >
-                View all →
-              </Link>
-            </div>
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-2xl font-bold text-slate-900">
-                  {formatCurrency(latestLoan.loanAmount)}
-                </p>
-                {latestLoan.purpose && (
-                  <p className="text-sm text-slate-400 mt-0.5">
-                    {latestLoan.purpose}
-                  </p>
-                )}
-                <div className="flex items-center gap-2 mt-2">
-                  <span
-                    className={`text-xs font-semibold px-2 py-0.5 rounded-full ${latestLoan.status === "APPROVED" ? "bg-emerald-50 text-emerald-700" : latestLoan.status === "REJECTED" ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-700"}`}
-                  >
-                    {latestLoan.status}
-                  </span>
-                </div>
-                {latestLoan.adminNote && (
-                  <p className="text-sm text-slate-500 mt-2 italic">
-                    &ldquo;{latestLoan.adminNote}&rdquo;
-                  </p>
-                )}
-              </div>
-              <RiskBadge
-                level={latestLoan.riskLevel}
-                score={latestLoan.riskScore}
-              />
-            </div>
-          </div>
-        )}
+        {latestLoan && <LatestLoan loan={latestLoan} />}
 
         {/* Bottom grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Quick Actions */}
-          <div className="bg-white rounded-2xl card-shadow p-5">
-            <h2 className="text-sm font-semibold text-slate-900 mb-4">
-              Quick Actions
-            </h2>
-            <div className="space-y-2">
-              {quickActions.map((action) => (
-                <Link
-                  key={action.href}
-                  href={action.href}
-                  className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 hover:border-teal-200 hover:bg-teal-50/50 transition-colors group"
-                >
-                  <div
-                    className={`${action.iconBg} w-9 h-9 rounded-lg flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform`}
-                  >
-                    {action.icon}
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-800">
-                      {action.title}
-                    </p>
-                    <p className="text-xs text-slate-400">{action.sub}</p>
-                  </div>
-                  <svg
-                    className="w-4 h-4 text-slate-300 ml-auto"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5l7 7-7 7"
-                    />
-                  </svg>
-                </Link>
-              ))}
-            </div>
-          </div>
-
-          {/* Recent Transactions */}
-          <div className="bg-white rounded-2xl card-shadow p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-semibold text-slate-900">
-                Recent Transactions
-              </h2>
-              <Link
-                href="/transactions"
-                className="text-xs font-medium text-teal-600 hover:text-teal-700"
-              >
-                View all →
-              </Link>
-            </div>
-            {transactions.length === 0 ? (
-              <div className="text-center py-8">
-                <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <svg
-                    className="w-5 h-5 text-slate-400"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.5}
-                      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                    />
-                  </svg>
-                </div>
-                <p className="text-sm text-slate-400">No transactions yet</p>
-              </div>
-            ) : (
-              <div className="space-y-1">
-                {transactions.slice(0, 5).map((tx) => (
-                  <div key={tx.id} className="flex items-center gap-3 py-2">
-                    <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${tx.type === "INCOME" ? "bg-emerald-50" : "bg-red-50"}`}
-                    >
-                      <svg
-                        className={`w-4 h-4 ${tx.type === "INCOME" ? "text-emerald-500" : "text-red-400"}`}
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        {tx.type === "INCOME" ? (
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M7 11l5-5m0 0l5 5m-5-5v12"
-                          />
-                        ) : (
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M17 13l-5 5m0 0l-5-5m5 5V6"
-                          />
-                        )}
-                      </svg>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-slate-800 truncate">
-                        {tx.description || tx.type}
-                      </p>
-                      <p className="text-xs text-slate-400">
-                        {formatDate(tx.transactionDate)}
-                      </p>
-                    </div>
-                    <span
-                      className={`text-sm font-semibold shrink-0 ${tx.type === "INCOME" ? "text-emerald-600" : "text-red-500"}`}
-                    >
-                      {tx.type === "INCOME" ? "+" : "-"}
-                      {formatCurrency(tx.amount)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <QuickActions actions={quickActions} />
+          <RecentTransactions transactions={transactions} />
         </div>
       </main>
     </div>

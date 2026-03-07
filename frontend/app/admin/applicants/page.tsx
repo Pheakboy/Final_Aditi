@@ -1,15 +1,18 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { useAuth } from "../../../context/AuthContext";
 import Sidebar from "../../../components/Sidebar";
 import LoanCard from "../../../components/LoanCard";
-import RiskBadge from "../../../components/RiskBadge";
 import { adminApi } from "../../../services/api";
 import { Loan, PagedResponse } from "../../../types";
-import { formatCurrency, formatDate } from "../../../utils/format";
+import LoadingScreen from "../../../components/ui/LoadingScreen";
+import ErrorAlert from "../../../components/ui/ErrorAlert";
+import Pagination from "../../../components/ui/Pagination";
+import LoanFilters from "../../../components/admin/LoanFilters";
+import LoanTable from "../../../components/admin/LoanTable";
+import NoteModal from "../../../components/admin/NoteModal";
 
 export default function AdminApplicantsPage() {
   const { user, isLoading, isAdmin } = useAuth();
@@ -112,22 +115,14 @@ export default function AdminApplicantsPage() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
+    return <LoadingScreen color="border-blue-600" />;
   }
 
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar />
       <main className="flex-1 p-8">
-        {dataError && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm mb-6">
-            {dataError}
-          </div>
-        )}
+        {dataError && <ErrorAlert message={dataError} />}
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">All Applicants</h1>
@@ -175,71 +170,21 @@ export default function AdminApplicantsPage() {
           </div>
         </div>
 
-        {/* Filters */}
-        <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6 space-y-3">
-          <div className="flex flex-wrap gap-4 items-center">
-            <div className="flex gap-2 items-center">
-              <span className="text-sm text-gray-500 font-medium">Status:</span>
-              {(["", "PENDING", "APPROVED", "REJECTED"] as const).map((f) => (
-                <button
-                  key={f || "ALL"}
-                  onClick={() => setFilter(f)}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${filter === f ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
-                >
-                  {f || "ALL"}
-                </button>
-              ))}
-            </div>
-            <div className="flex gap-2 items-center">
-              <span className="text-sm text-gray-500 font-medium">Risk:</span>
-              {(["", "LOW", "MEDIUM", "HIGH"] as const).map((r) => (
-                <button
-                  key={r || "ALL"}
-                  onClick={() => setRiskFilter(r)}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${riskFilter === r ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
-                >
-                  {r || "ALL"}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-4 items-center">
-            <span className="text-sm text-gray-500 font-medium">
-              Date Range:
-            </span>
-            <div className="flex items-center gap-2">
-              <label className="text-xs text-gray-500">From:</label>
-              <input
-                type="date"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-                className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <label className="text-xs text-gray-500">To:</label>
-              <input
-                type="date"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-                className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            {(filter || riskFilter || dateFrom || dateTo) && (
-              <button
-                onClick={clearFilters}
-                className="px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors"
-              >
-                Clear Filters
-              </button>
-            )}
-          </div>
-        </div>
+        <LoanFilters
+          filter={filter}
+          riskFilter={riskFilter}
+          dateFrom={dateFrom}
+          dateTo={dateTo}
+          onFilterChange={setFilter}
+          onRiskFilterChange={setRiskFilter}
+          onDateFromChange={setDateFrom}
+          onDateToChange={setDateTo}
+          onClearFilters={clearFilters}
+        />
 
-        {/* Content */}
         {dataLoading ? (
           <div className="flex justify-center py-12">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
           </div>
         ) : loans.length === 0 ? (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
@@ -269,209 +214,39 @@ export default function AdminApplicantsPage() {
             ))}
           </div>
         ) : (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">
-                    Applicant
-                  </th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">
-                    Loan Amount
-                  </th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">
-                    Risk
-                  </th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">
-                    Status
-                  </th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">
-                    Date
-                  </th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {loans.map((loan) => {
-                  const statusColors = {
-                    PENDING: "bg-yellow-100 text-yellow-700",
-                    APPROVED: "bg-green-100 text-green-700",
-                    REJECTED: "bg-red-100 text-red-700",
-                  };
-                  return (
-                    <tr key={loan.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3">
-                        <div>
-                          <p className="font-medium text-gray-900">
-                            {loan.applicantUsername}
-                          </p>
-                          <p className="text-xs text-gray-400">
-                            {loan.applicantEmail}
-                          </p>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 font-medium text-gray-900">
-                        {formatCurrency(loan.loanAmount)}
-                      </td>
-                      <td className="px-4 py-3">
-                        <RiskBadge
-                          level={loan.riskLevel}
-                          score={loan.riskScore}
-                        />
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[loan.status]}`}
-                        >
-                          {loan.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-gray-500 text-xs">
-                        {formatDate(loan.createdAt)}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex flex-wrap gap-1">
-                          {loan.status === "PENDING" && (
-                            <>
-                              <button
-                                onClick={() =>
-                                  openNoteModal(loan.id, "APPROVED")
-                                }
-                                disabled={processingId === loan.id}
-                                className="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 disabled:opacity-50 transition-colors"
-                              >
-                                Approve
-                              </button>
-                              <button
-                                onClick={() =>
-                                  openNoteModal(loan.id, "REJECTED")
-                                }
-                                disabled={processingId === loan.id}
-                                className="px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 disabled:opacity-50 transition-colors"
-                              >
-                                Reject
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <LoanTable
+            loans={loans}
+            processingId={processingId}
+            onApprove={(id) => openNoteModal(id, "APPROVED")}
+            onReject={(id) => openNoteModal(id, "REJECTED")}
+          />
         )}
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between mt-6">
-            <p className="text-sm text-gray-500">
-              Page {currentPage + 1} of {totalPages} &nbsp;·&nbsp;{" "}
-              {totalElements} total
-            </p>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => handlePageChange(0)}
-                disabled={currentPage === 0}
-                className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                «
-              </button>
-              <button
-                onClick={() => handlePageChange(currentPage - 1)}
-                disabled={currentPage === 0}
-                className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                ‹ Prev
-              </button>
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                const start = Math.max(
-                  0,
-                  Math.min(currentPage - 2, totalPages - 5),
-                );
-                const p = start + i;
-                return (
-                  <button
-                    key={p}
-                    onClick={() => handlePageChange(p)}
-                    className={`px-3 py-1.5 text-sm border rounded-lg transition-colors ${p === currentPage ? "bg-blue-600 text-white border-blue-600" : "border-gray-300 bg-white hover:bg-gray-50"}`}
-                  >
-                    {p + 1}
-                  </button>
-                );
-              })}
-              <button
-                onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage >= totalPages - 1}
-                className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                Next ›
-              </button>
-              <button
-                onClick={() => handlePageChange(totalPages - 1)}
-                disabled={currentPage >= totalPages - 1}
-                className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                »
-              </button>
-            </div>
-          </div>
-        )}
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalElements={totalElements}
+          onPageChange={handlePageChange}
+        />
 
-        {/* Note Modal */}
         {noteModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md mx-4">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                {noteModal.decision === "APPROVED"
-                  ? "Approve Loan"
-                  : "Reject Loan"}
-              </h3>
-              <p className="text-sm text-gray-500 mb-4">
-                Add an optional note for the applicant:
-              </p>
-              <textarea
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm mb-4"
-                placeholder={
-                  noteModal.decision === "APPROVED"
-                    ? "e.g. Congratulations! Loan approved."
-                    : "e.g. Insufficient income."
-                }
-              />
-              <div className="flex gap-3">
-                <button
-                  onClick={() =>
-                    handleDecide(
-                      noteModal.loanId,
-                      noteModal.decision,
-                      note || undefined,
-                    )
-                  }
-                  disabled={processingId !== null}
-                  className={`flex-1 py-2 px-4 text-white text-sm font-medium rounded-lg disabled:opacity-50 transition-colors ${noteModal.decision === "APPROVED" ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"}`}
-                >
-                  {processingId
-                    ? "Processing..."
-                    : `Confirm ${noteModal.decision}`}
-                </button>
-                <button
-                  onClick={() => {
-                    setNoteModal(null);
-                    setNote("");
-                  }}
-                  className="flex-1 py-2 px-4 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
+          <NoteModal
+            decision={noteModal.decision}
+            note={note}
+            isProcessing={processingId !== null}
+            onNoteChange={setNote}
+            onConfirm={() =>
+              handleDecide(
+                noteModal.loanId,
+                noteModal.decision,
+                note || undefined,
+              )
+            }
+            onCancel={() => {
+              setNoteModal(null);
+              setNote("");
+            }}
+          />
         )}
       </main>
     </div>
