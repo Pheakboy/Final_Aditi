@@ -1,7 +1,10 @@
+import Image from "next/image";
+
+
 interface Feature {
   text: string;
 }
-
+  
 interface BrandPanelProps {
   heading: string;
   subheading: string;
@@ -21,41 +24,32 @@ export default function BrandPanel({
       : "";
 
   return (
-    <div className="hidden lg:flex lg:w-1/2 gradient-teal flex-col justify-between p-12 relative overflow-hidden">
-      {/* Background decoration */}
-      <div className="absolute inset-0 opacity-10">
+    <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden flex-col justify-between p-12 bg-slate-900">
+      {/* Background decoration - animated rich gradient */}
+      <div className="absolute inset-0">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-indigo-900/80 via-slate-900 to-teal-900/80"></div>
         {side === "left" ? (
           <>
-            <div className="absolute top-0 right-0 w-96 h-96 bg-white rounded-full -translate-y-1/2 translate-x-1/2" />
-            <div className="absolute bottom-0 left-0 w-64 h-64 bg-white rounded-full translate-y-1/2 -translate-x-1/2" />
+            <div className="absolute top-0 right-0 w-[40rem] h-[40rem] bg-teal-500/20 rounded-full blur-[120px] -translate-y-1/4 translate-x-1/3 mix-blend-screen" />
+            <div className="absolute bottom-0 left-0 w-[30rem] h-[30rem] bg-indigo-500/20 rounded-full blur-[100px] translate-y-1/3 -translate-x-1/4 mix-blend-screen" />
           </>
         ) : (
           <>
-            <div className="absolute top-0 left-0 w-96 h-96 bg-white rounded-full -translate-y-1/2 -translate-x-1/2" />
-            <div className="absolute bottom-0 right-0 w-64 h-64 bg-white rounded-full translate-y-1/2 translate-x-1/2" />
+            <div className="absolute top-0 left-0 w-[40rem] h-[40rem] bg-teal-500/20 rounded-full blur-[120px] -translate-y-1/4 -translate-x-1/3 mix-blend-screen" />
+            <div className="absolute bottom-0 right-0 w-[30rem] h-[30rem] bg-indigo-500/20 rounded-full blur-[100px] translate-y-1/3 translate-x-1/4 mix-blend-screen" />
           </>
         )}
+        {/* Subtle noise overlay could go here */}
+        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
       </div>
 
-      <div className="relative z-10">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
-            <svg
-              className="w-6 h-6 text-white"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-          </div>
-          <span className="text-white font-bold text-xl">LoanRisk</span>
-        </div>
+      <div className="relative z-10 animate-fade-in">
+        <Image
+          src="/logo_no_bg.png"
+          alt="LoanRisk Logo"
+          width={255}
+          height={255}
+        />
       </div>
 
       <div className="relative z-10">
@@ -66,9 +60,9 @@ export default function BrandPanel({
         <div className="space-y-3">
           {features.map((f) => (
             <div key={f} className="flex items-center gap-3">
-              <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
                 <svg
-                  className="w-3 h-3 text-white"
+                  className="w-6 h-6 text-white"
                   fill="currentColor"
                   viewBox="0 0 20 20"
                 >

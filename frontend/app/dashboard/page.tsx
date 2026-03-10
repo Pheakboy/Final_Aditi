@@ -155,23 +155,28 @@ export default function DashboardPage() {
   return (
     <div className="flex min-h-screen bg-slate-50">
       <Sidebar />
-      <main className="flex-1 p-6 lg:p-8 overflow-auto">
+      <main className="flex-1 p-6 lg:p-10 overflow-auto bg-slate-50">
+
         {/* Header */}
-        <div className="mb-8 animate-fade-in">
-          <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
-          <p className="text-slate-500 mt-1 text-sm">
-            Welcome back,{" "}
-            <span className="font-semibold text-teal-600">
-              {user?.username}
-            </span>
-            !
-          </p>
+        <div className="mb-8 animate-slide-up flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Dashboard</h1>
+            <p className="text-slate-500 mt-1 text-sm font-medium">
+              Welcome back,{" "}
+              <span className="font-semibold text-slate-900">
+                {user?.username}
+              </span>
+            </p>
+          </div>
+          <div className="text-sm font-semibold text-slate-500 bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm inline-block">
+            {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' })}
+          </div>
         </div>
 
         {dataError && <ErrorAlert message={dataError} />}
 
-        {/* Stat Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5 mb-8">
+        {/* Stat Cards - Primary Metrics */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
           <StatCard
             label="Total Income"
             value={formatCurrency(totalIncome)}
@@ -191,7 +196,7 @@ export default function DashboardPage() {
               </svg>
             }
             iconBg="gradient-emerald"
-            valueColor="text-emerald-600"
+            valueColor="text-emerald-700"
           />
           <StatCard
             label="Total Expenses"
@@ -212,7 +217,7 @@ export default function DashboardPage() {
               </svg>
             }
             iconBg="gradient-rose"
-            valueColor="text-red-500"
+            valueColor="text-rose-700"
           />
           <StatCard
             label="Savings Balance"
@@ -234,7 +239,7 @@ export default function DashboardPage() {
             }
             iconBg="gradient-sky"
             valueColor={
-              Number(savingsBalance) >= 0 ? "text-sky-600" : "text-red-500"
+              Number(savingsBalance) >= 0 ? "text-sky-700" : "text-rose-700"
             }
           />
           <StatCard
@@ -257,48 +262,73 @@ export default function DashboardPage() {
               </svg>
             }
             iconBg="gradient-amber"
-            valueColor="text-slate-900"
+            valueColor="text-amber-700"
           />
         </div>
 
-        {/* Secondary stats row */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
-          <div className="bg-white rounded-2xl card-shadow p-5">
-            <p className="text-xs text-slate-500 mb-1">Avg. Monthly Income</p>
-            <p className="text-xl font-bold text-slate-900">
-              {formatCurrency(avgMonthlyIncome)}
-            </p>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Across active months
-            </p>
+        {/* Performance & Risk (Secondary Stats) */}
+        <div className="mb-4 mt-8 flex items-center justify-between">
+          <h2 className="text-xl font-bold text-slate-800 tracking-tight">Performance & Risk</h2>
+          <div className="h-px bg-slate-200/60 flex-1 ml-6"></div>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10 animate-slide-up" style={{ animationDelay: "100ms" }}>
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 relative overflow-hidden transition-all hover:shadow-md">
+            <div className="relative z-10">
+              <p className="text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Avg. Monthly</p>
+              <p className="text-2xl font-extrabold text-slate-900 tracking-tight">
+                {formatCurrency(avgMonthlyIncome)}
+              </p>
+            </div>
+            <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-emerald-50 rounded-full opacity-50"></div>
           </div>
-          <div className="bg-white rounded-2xl card-shadow p-5">
-            <p className="text-xs text-slate-500 mb-1">Transactions</p>
-            <p className="text-xl font-bold text-slate-900">
-              {summary?.totalTransactions ?? transactions.length}
-            </p>
-            <p className="text-xs text-slate-400 mt-0.5">Total recorded</p>
+          
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 relative overflow-hidden transition-all hover:shadow-md">
+            <div className="relative z-10">
+              <p className="text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Transactions</p>
+              <div className="flex items-baseline gap-2">
+                <p className="text-2xl font-extrabold text-slate-900 tracking-tight">
+                  {summary?.totalTransactions ?? transactions.length}
+                </p>
+                <span className="text-xs font-semibold text-slate-500">recorded</span>
+              </div>
+            </div>
+            <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-sky-50 rounded-full opacity-50"></div>
           </div>
-          <div className="bg-white rounded-2xl card-shadow p-5">
-            <p className="text-xs text-slate-500 mb-2">Current Risk Level</p>
-            {summary?.currentRiskLevel ? (
-              <RiskBadge
-                level={summary.currentRiskLevel as "LOW" | "MEDIUM" | "HIGH"}
-                score={summary.currentRiskScore ?? undefined}
-              />
-            ) : (
-              <p className="text-slate-400 text-sm">No loan applied yet</p>
-            )}
+          
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 relative overflow-hidden transition-all hover:shadow-md">
+            <div className="relative z-10">
+              <p className="text-xs font-bold text-slate-500 mb-2 uppercase tracking-wider">Risk Level</p>
+              <div className="mt-0.5">
+                {summary?.currentRiskLevel ? (
+                  <RiskBadge
+                    level={summary.currentRiskLevel as "LOW" | "MEDIUM" | "HIGH"}
+                    score={summary.currentRiskScore ?? undefined}
+                  />
+                ) : (
+                  <p className="text-slate-500 text-xs font-semibold bg-slate-50 inline-block px-2.5 py-1 rounded-md border border-slate-200">No data</p>
+                )}
+              </div>
+            </div>
+            <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-indigo-50 rounded-full opacity-50"></div>
           </div>
         </div>
 
-        {/* Latest Loan */}
-        {latestLoan && <LatestLoan loan={latestLoan} />}
+        {/* Action Center Divider */}
+        <div className="mb-4 mt-8 flex items-center justify-between">
+          <h2 className="text-xl font-bold text-slate-800 tracking-tight">Action Center</h2>
+          <div className="h-px bg-slate-200/60 flex-1 ml-6"></div>
+        </div>
 
-        {/* Bottom grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <QuickActions actions={quickActions} />
-          <RecentTransactions transactions={transactions} />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6">
+            {/* Latest Loan */}
+            {latestLoan && <LatestLoan loan={latestLoan} />}
+            <RecentTransactions transactions={transactions} />
+          </div>
+          <div className="lg:col-span-1">
+            <QuickActions actions={quickActions} />
+          </div>
         </div>
       </main>
     </div>

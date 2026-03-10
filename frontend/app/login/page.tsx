@@ -54,7 +54,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex bg-transparent">
       <BrandPanel
         side="left"
         heading={"Smart Micro-Loan\nRisk Scoring System"}
@@ -67,13 +67,17 @@ export default function LoginPage() {
       />
 
       {/* Right panel - form */}
-      <div className="flex-1 flex items-center justify-center p-8 bg-slate-50">
-        <div className="w-full max-w-md animate-fade-in">
-          <div className="mb-8">
-            <div className="lg:hidden flex items-center gap-2 mb-6">
-              <div className="w-8 h-8 rounded-lg gradient-teal flex items-center justify-center">
+      <div className="flex-1 flex items-center justify-center p-8 bg-transparent relative overflow-hidden">
+        {/* Decorative background blur elements */}
+        <div className="absolute top-[-10%] right-[-5%] w-96 h-96 bg-teal-400/20 rounded-full blur-[100px] pointer-events-none"></div>
+        <div className="absolute bottom-[-10%] left-[10%] w-80 h-80 bg-indigo-400/20 rounded-full blur-[80px] pointer-events-none"></div>
+
+        <div className="w-full max-w-md animate-slide-up relative z-10 glass p-8 rounded-3xl">
+          <div className="mb-8 text-center">
+            <div className="lg:hidden flex items-center justify-center gap-2 mb-6">
+              <div className="w-10 h-10 rounded-xl gradient-teal flex items-center justify-center shadow-lg shadow-teal-500/30">
                 <svg
-                  className="w-4 h-4 text-white"
+                  className="w-5 h-5 text-white"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -86,19 +90,18 @@ export default function LoginPage() {
                   />
                 </svg>
               </div>
-              <span className="font-bold text-slate-800">LoanRisk</span>
             </div>
-            <h2 className="text-2xl font-bold text-slate-900">Welcome back</h2>
-            <p className="text-slate-500 mt-1 text-sm">
+            <h2 className="text-3xl font-bold text-slate-900 tracking-tight">Welcome back</h2>
+            <p className="text-slate-500 mt-2 text-sm font-medium">
               Sign in to your account to continue
             </p>
           </div>
 
           {error && <ErrorAlert message={error} />}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">
+              <label className="block text-sm font-semibold text-slate-700 mb-1.5 ml-1">
                 Email address
               </label>
               <input
@@ -107,13 +110,13 @@ export default function LoginPage() {
                 value={email}
                 autoComplete="email"
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-slate-900 text-sm placeholder-slate-400 bg-white focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors"
+                className="w-full px-4 py-3 border border-slate-200/60 rounded-xl text-slate-900 text-sm placeholder-slate-400 bg-white/50 focus:bg-white focus:outline-none focus:ring-4 focus:ring-teal-500/20 focus:border-teal-500 transition-all duration-300"
                 placeholder="you@example.com"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">
+              <label className="block text-sm font-semibold text-slate-700 mb-1.5 ml-1">
                 Password
               </label>
               <input
@@ -122,7 +125,7 @@ export default function LoginPage() {
                 value={password}
                 autoComplete="current-password"
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-slate-900 text-sm placeholder-slate-400 bg-white focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors"
+                className="w-full px-4 py-3 border border-slate-200/60 rounded-xl text-slate-900 text-sm placeholder-slate-400 bg-white/50 focus:bg-white focus:outline-none focus:ring-4 focus:ring-teal-500/20 focus:border-teal-500 transition-all duration-300"
                 placeholder="Enter your password"
               />
             </div>
@@ -130,8 +133,10 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 gradient-teal text-white text-sm font-semibold rounded-xl shadow-sm hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all mt-2"
+              className="w-full flex items-center justify-center gap-2 py-3 px-4 gradient-teal text-white text-sm font-bold rounded-xl shadow-lg shadow-teal-500/30 hover:shadow-teal-500/50 hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-teal-500/30 transition-all duration-300 mt-4 relative overflow-hidden group"
             >
+              <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out"></div>
+              <span className="relative flex items-center gap-2 z-10">
               {isSubmitting ? (
                 <>
                   <Spinner /> Signing in...
@@ -139,6 +144,7 @@ export default function LoginPage() {
               ) : (
                 "Sign in"
               )}
+              </span>
             </button>
           </form>
 

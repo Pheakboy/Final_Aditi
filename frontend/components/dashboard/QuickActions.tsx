@@ -14,16 +14,16 @@ interface QuickActionsProps {
 
 export default function QuickActions({ actions }: QuickActionsProps) {
   return (
-    <div className="bg-white rounded-2xl card-shadow p-5">
-      <h2 className="text-sm font-semibold text-slate-900 mb-4">
+    <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 transition-all hover:shadow-md">
+      <h2 className="text-base font-semibold text-slate-900 tracking-tight mb-5">
         Quick Actions
       </h2>
-      <div className="space-y-2">
+      <div className="space-y-3 relative z-10">
         {actions.map((action) => (
           <Link
             key={action.href}
             href={action.href}
-            className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 hover:border-teal-200 hover:bg-teal-50/50 transition-colors group"
+            className="flex items-center gap-4 p-3 rounded-lg border border-slate-200 bg-slate-50 hover:bg-white hover:border-slate-300 transition-all duration-200 group/item"
           >
             <div
               className={`${action.iconBg} w-9 h-9 rounded-lg flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform`}

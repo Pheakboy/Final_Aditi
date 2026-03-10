@@ -86,19 +86,24 @@ export default function AdminDashboardPage() {
   return (
     <div className="flex min-h-screen bg-slate-50">
       <Sidebar />
-      <main className="flex-1 p-6 lg:p-8 overflow-auto">
+      <main className="flex-1 p-6 lg:p-10 overflow-auto bg-slate-50">
         {/* Header */}
-        <div className="mb-8 animate-fade-in">
-          <h1 className="text-2xl font-bold text-slate-900">Admin Dashboard</h1>
-          <p className="text-slate-500 mt-1 text-sm">
-            Review and manage loan applications
-          </p>
+        <div className="mb-8 animate-slide-up flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Admin Dashboard</h1>
+            <p className="text-slate-500 mt-1 text-sm font-medium">
+              Review and manage loan applications across the platform
+            </p>
+          </div>
+          <div className="text-sm font-semibold text-slate-500 bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm inline-block">
+            {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' })}
+          </div>
         </div>
 
         {dataError && <ErrorAlert message={dataError} />}
 
         {/* Stat Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
           <StatCard
             label="Total Applications"
             value={allLoans.length}
@@ -184,32 +189,31 @@ export default function AdminDashboardPage() {
           />
         </div>
 
-        {/* Pending Applications */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <h2 className="text-base font-semibold text-slate-900">
-                Pending Applications
-              </h2>
-              {pendingLoans.length > 0 && (
-                <span className="bg-amber-100 text-amber-700 text-xs font-semibold px-2 py-0.5 rounded-full">
-                  {pendingLoans.length}
-                </span>
-              )}
-            </div>
-            <Link
-              href="/admin/applicants"
-              className="text-xs font-medium text-indigo-600 hover:text-indigo-700"
-            >
-              View all loans →
-            </Link>
+        {/* Pending Applications Section */}
+        <div className="mb-4 mt-8 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <h2 className="text-xl font-bold text-slate-800 tracking-tight">Pending Applications</h2>
+            {pendingLoans.length > 0 && (
+              <span className="bg-amber-500/10 border border-amber-500/20 text-amber-700 text-xs font-bold px-2.5 py-1 rounded-full shadow-sm shadow-amber-500/10">
+                {pendingLoans.length}
+              </span>
+            )}
           </div>
+          <div className="h-px bg-slate-200/60 flex-1 ml-6 mr-6 hidden sm:block"></div>
+          <Link
+            href="/admin/applicants"
+            className="text-sm font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-4 py-2 rounded-xl transition-all hover:bg-indigo-100"
+          >
+            Review all →
+          </Link>
+        </div>
 
+        <div className="animate-slide-up" style={{ animationDelay: "150ms" }}>
           {pendingLoans.length === 0 ? (
-            <div className="bg-white rounded-2xl card-shadow p-12 text-center">
-              <div className="w-12 h-12 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-16 text-center">
+              <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-emerald-100">
                 <svg
-                  className="w-6 h-6 text-emerald-500"
+                  className="w-8 h-8 text-emerald-500"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -217,16 +221,16 @@ export default function AdminDashboardPage() {
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    strokeWidth={1.5}
+                    strokeWidth={2}
                     d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                   />
                 </svg>
               </div>
-              <p className="text-slate-500 text-sm font-medium">
+              <p className="text-slate-800 text-lg font-bold tracking-tight mb-1">
                 All caught up!
               </p>
-              <p className="text-slate-400 text-xs mt-1">
-                No pending loan applications.
+              <p className="text-slate-500 text-sm font-medium">
+                There are no pending loan applications at this time.
               </p>
             </div>
           ) : (

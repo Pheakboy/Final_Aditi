@@ -10,14 +10,14 @@ export default function RecentTransactions({
   transactions,
 }: RecentTransactionsProps) {
   return (
-    <div className="bg-white rounded-2xl card-shadow p-5">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-sm font-semibold text-slate-900">
+    <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 transition-all hover:shadow-md">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-base font-semibold text-slate-900 tracking-tight">
           Recent Transactions
         </h2>
         <Link
           href="/transactions"
-          className="text-xs font-medium text-teal-600 hover:text-teal-700"
+          className="text-sm font-bold text-teal-600 hover:text-teal-700 bg-teal-50 px-3 py-1.5 rounded-lg transition-colors"
         >
           View all →
         </Link>

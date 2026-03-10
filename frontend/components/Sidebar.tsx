@@ -53,11 +53,11 @@ function UserSidebar() {
   ];
 
   return (
-    <aside className="w-64 bg-white border-r border-slate-100 min-h-screen flex flex-col shadow-sm">
+    <aside className="w-64 bg-white/80 backdrop-blur-xl border-r border-slate-200/60 min-h-screen flex flex-col shadow-2xl shadow-slate-200/40 relative z-20">
       {/* Logo */}
-      <div className="p-5 border-b border-slate-100">
+      <div className="p-6 border-b border-slate-200/60">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl gradient-teal flex items-center justify-center shadow-md">
+          <div className="w-10 h-10 rounded-2xl gradient-teal flex items-center justify-center shadow-lg shadow-teal-500/30">
             <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
@@ -70,32 +70,32 @@ function UserSidebar() {
       </div>
 
       {/* User profile card */}
-      <div className="p-4">
-        <div className="bg-linear-to-br from-teal-50 to-sky-50 rounded-xl p-3 border border-teal-100">
+      <div className="p-5">
+        <div className="bg-gradient-to-br from-slate-50 to-slate-100/50 rounded-2xl p-4 border border-slate-200/60 shadow-sm">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-linear-to-br from-teal-500 to-sky-500 flex items-center justify-center shadow-sm">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-500 to-sky-500 flex items-center justify-center shadow-md shadow-teal-500/20">
               <span className="text-white text-sm font-bold">{user?.username?.charAt(0).toUpperCase() || "U"}</span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-slate-800 truncate">{user?.username}</p>
-              <p className="text-xs text-slate-500 truncate">{user?.email}</p>
+              <p className="text-sm font-bold text-slate-800 truncate">{user?.username}</p>
+              <p className="text-xs text-slate-500 truncate font-medium">{user?.email}</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 pb-3 space-y-0.5">
-        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider px-3 pb-1 pt-2">Menu</p>
+      <nav className="flex-1 px-4 pb-4 space-y-1 overflow-y-auto">
+        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider px-3 pb-2 pt-2">Menu</p>
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           return (
             <Link key={item.href} href={item.href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 ${isActive ? "bg-teal-600 text-white shadow-sm shadow-teal-200" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}>
-              <span className={isActive ? "text-white" : "text-slate-400"}>{item.icon}</span>
+              className={`flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${isActive ? "bg-teal-50 text-teal-700 font-bold shadow-sm border border-teal-100/50" : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"}`}>
+              <span className={`transition-colors duration-200 ${isActive ? "text-teal-600" : "text-slate-400"}`}>{item.icon}</span>
               <span className="flex-1">{item.label}</span>
               {item.badge != null && item.badge > 0 && (
-                <span className={`inline-flex items-center justify-center min-w-[18px] h-[18px] text-xs font-bold rounded-full px-1 ${isActive ? "bg-white/30 text-white" : "bg-teal-600 text-white"}`}>
+                <span className={`inline-flex items-center justify-center min-w-[20px] h-[20px] text-[10px] font-bold rounded-full px-1.5 shadow-sm ${isActive ? "bg-teal-600 text-white" : "bg-rose-500 text-white"}`}>
                   {item.badge > 99 ? "99+" : item.badge}
                 </span>
               )}
@@ -105,10 +105,10 @@ function UserSidebar() {
       </nav>
 
       {/* Logout */}
-      <div className="p-3 border-t border-slate-100">
+      <div className="p-4 border-t border-slate-200/60 mt-auto">
         <button onClick={logout}
-          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-slate-500 hover:bg-red-50 hover:text-red-600 transition-all duration-150 group">
-          <svg className="w-5 h-5 group-hover:text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          className="flex items-center justify-center gap-2 w-full px-4 py-3 rounded-xl text-sm font-bold text-slate-600 border border-slate-200 bg-white hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 transition-all duration-200 shadow-sm group">
+          <svg className="w-5 h-5 group-hover:-translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
           </svg>
           Sign out
@@ -155,11 +155,11 @@ function AdminSidebar() {
   ];
 
   return (
-    <aside className="w-64 bg-slate-900 min-h-screen flex flex-col admin-scroll">
+    <aside className="w-64 bg-slate-900 border-r border-slate-800 min-h-screen flex flex-col admin-scroll shadow-2xl relative z-20">
       {/* Logo */}
-      <div className="p-5 border-b border-slate-700/50">
+      <div className="p-6 border-b border-slate-800">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl gradient-indigo flex items-center justify-center shadow-lg">
+          <div className="w-10 h-10 rounded-2xl gradient-indigo flex items-center justify-center shadow-lg shadow-indigo-500/20">
             <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
             </svg>
@@ -172,30 +172,30 @@ function AdminSidebar() {
       </div>
 
       {/* Admin profile */}
-      <div className="p-4">
-        <div className="bg-slate-800 rounded-xl p-3 border border-slate-700">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full gradient-indigo flex items-center justify-center shadow-sm">
+      <div className="p-5">
+        <div className="bg-slate-800/80 rounded-2xl p-4 border border-slate-700 shadow-sm relative overflow-hidden group hover:border-slate-600 transition-colors">
+          <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+          <div className="flex items-center gap-3 relative z-10">
+            <div className="w-10 h-10 rounded-full gradient-indigo flex items-center justify-center shadow-md">
               <span className="text-white text-sm font-bold">{user?.username?.charAt(0).toUpperCase() || "A"}</span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-white truncate">{user?.username}</p>
-              <p className="text-xs text-slate-400 truncate">{user?.email}</p>
+              <p className="text-sm font-bold text-white truncate">{user?.username}</p>
+              <p className="text-xs text-slate-400 truncate font-medium">{user?.email}</p>
             </div>
-            <span className="text-xs bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-1.5 py-0.5 rounded font-medium shrink-0">Admin</span>
           </div>
         </div>
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 pb-3 space-y-0.5">
-        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-3 pb-1 pt-2">Management</p>
+      <nav className="flex-1 px-4 pb-4 space-y-1 overflow-y-auto">
+        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider px-3 pb-2 pt-2">Management</p>
         {navItems.map((item) => {
           const isActive = pathname === item.href || (item.href !== "/admin/dashboard" && pathname.startsWith(item.href));
           return (
             <Link key={item.href} href={item.href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 ${isActive ? "bg-indigo-600 text-white shadow-sm shadow-indigo-900/50" : "text-slate-400 hover:bg-slate-800 hover:text-white"}`}>
-              <span className={isActive ? "text-indigo-200" : "text-slate-500"}>{item.icon}</span>
+              className={`flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${isActive ? "bg-indigo-500/10 text-indigo-300 font-bold border border-indigo-500/20" : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"}`}>
+              <span className={`transition-colors duration-200 ${isActive ? "text-indigo-400" : "text-slate-500"}`}>{item.icon}</span>
               {item.label}
             </Link>
           );
@@ -203,10 +203,10 @@ function AdminSidebar() {
       </nav>
 
       {/* Logout */}
-      <div className="p-3 border-t border-slate-700/50">
+      <div className="p-4 border-t border-slate-800 mt-auto">
         <button onClick={logout}
-          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:bg-red-900/30 hover:text-red-400 transition-all duration-150 group">
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          className="flex items-center justify-center gap-2 w-full px-4 py-3 rounded-xl text-sm font-bold text-slate-400 border border-slate-700 bg-slate-800 hover:bg-rose-500/10 hover:text-rose-400 hover:border-rose-500/30 transition-all duration-200 shadow-sm group">
+          <svg className="w-5 h-5 group-hover:-translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
           </svg>
           Sign out

@@ -40,17 +40,17 @@ export default function RiskBadge({ level, score }: RiskBadgeProps) {
 
   const config = {
     LOW: {
-      wrapper: "bg-emerald-50 border-emerald-200 text-emerald-700",
+      wrapper: "bg-emerald-500/10 border-emerald-500/20 text-emerald-700 shadow-sm shadow-emerald-500/10",
       icon: <ShieldIcon />,
       label: "Low Risk",
     },
     MEDIUM: {
-      wrapper: "bg-amber-50 border-amber-200 text-amber-700",
+      wrapper: "bg-amber-500/10 border-amber-500/20 text-amber-700 shadow-sm shadow-amber-500/10",
       icon: <AlertIcon />,
       label: "Medium Risk",
     },
     HIGH: {
-      wrapper: "bg-red-50 border-red-200 text-red-700",
+      wrapper: "bg-rose-500/10 border-rose-500/20 text-rose-700 shadow-sm shadow-rose-500/10",
       icon: <DangerIcon />,
       label: "High Risk",
     },
@@ -60,7 +60,7 @@ export default function RiskBadge({ level, score }: RiskBadgeProps) {
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${c.wrapper}`}
+      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border backdrop-blur-sm ${c.wrapper}`}
     >
       {c.icon}
       {c.label}
