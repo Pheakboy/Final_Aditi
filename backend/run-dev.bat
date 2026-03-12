@@ -1,7 +1,8 @@
 @echo off
 REM ─────────────────────────────────────────────────────────
-REM  Backend Dev Runner — sets JAVA_HOME to JDK 21 then starts
-REM  the Spring Boot app using the dev profile (H2 in-memory DB)
+REM  Backend Dev Runner — loads .env then starts Spring Boot
+REM  All credentials and config are read from .env
+REM  Copy .env.example to .env and fill in your Neon details.
 REM ─────────────────────────────────────────────────────────
 
 REM Point to JDK 21 (update this path if your JDK 21 is installed elsewhere)
@@ -19,9 +20,8 @@ echo.
 echo  Java version:
 java -version
 echo.
-echo  Starting backend (dev profile, H2 in-memory DB)...
-echo  H2 Console: http://localhost:8080/h2-console
-echo  API base:   http://localhost:8080
+echo  Starting backend...
+echo  API base: http://localhost:8080
 echo.
 
 call mvnw.cmd spring-boot:run

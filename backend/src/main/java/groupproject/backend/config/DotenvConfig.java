@@ -1,0 +1,32 @@
+package groupproject.backend.config;
+
+import org.springframework.context.annotation.Configuration;
+
+import io.github.cdimascio.dotenv.Dotenv;
+import jakarta.annotation.PostConstruct;
+
+@Configuration
+public class DotenvConfig {
+
+    @PostConstruct
+    public void loadEnv() {
+        // .env is loaded in BackendApplication.main() before Spring context starts
+    }
+
+    public static void setSystemProperties() {
+        try {
+            Dotenv dotenv = Dotenv.configure()
+                    .directory(".")
+                    .ignoreIfMissing()
+                    .load();
+
+            dotenv.entries().forEach(entry -> {
+                if (System.getProperty(entry.getKey()) == null) {
+                    System.setProperty(entry.getKey(), entry.getValue());
+                }
+            });
+        } catch (Exception e) {
+            System.err.println("Warning: Could not load .env file: " + e.getMessage());
+        }
+    }
+}
