@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: loan-backend
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    # Render injects PORT automatically — no need to set it here
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      # ── Set these in the Render dashboard (mark as Secret) ──────────────────
+      - key: DB_URL
+        sync: false
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      # ── Set this to your Vercel frontend URL ────────────────────────────────
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false

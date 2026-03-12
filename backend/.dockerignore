@@ -1,0 +1,29 @@
+# Compiled output
+target/
+
+# IDE / editor files
+.idea/
+*.iml
+*.iws
+*.ipr
+.classpath
+.project
+.settings/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Secrets — never bake these into the image
+.env
+.env.*
+
+# Local data
+data/
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+*.md

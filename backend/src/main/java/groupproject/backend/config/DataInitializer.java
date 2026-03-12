@@ -1,18 +1,19 @@
 package groupproject.backend.config;
 
-import groupproject.backend.model.Role;
-import groupproject.backend.model.User;
-import groupproject.backend.repository.RoleRepository;
-import groupproject.backend.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.util.Set;
+
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Set;
+import groupproject.backend.model.Role;
+import groupproject.backend.model.User;
+import groupproject.backend.repository.RoleRepository;
+import groupproject.backend.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Component
 @RequiredArgsConstructor
@@ -66,6 +67,6 @@ public class DataInitializer implements ApplicationRunner {
         admin.setRoles(Set.of(adminRole, userRole));
 
         userRepository.save(admin);
-        log.info("Seeded default admin user: {} (password: admin123)", adminEmail);
+        log.info("Seeded default admin user: {}", adminEmail);
     }
 }

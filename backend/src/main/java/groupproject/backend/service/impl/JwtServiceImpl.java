@@ -1,5 +1,17 @@
 package groupproject.backend.service.impl;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+
+import javax.crypto.SecretKey;
+
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.stereotype.Service;
+
 import groupproject.backend.config.JwtProperties;
 import groupproject.backend.model.RefreshToken;
 import groupproject.backend.model.Role;
@@ -10,15 +22,6 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.stereotype.Service;
-
-import javax.crypto.SecretKey;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
 
 @Service
 @RequiredArgsConstructor
@@ -28,7 +31,7 @@ public class JwtServiceImpl implements JwtService {
     private final RefreshTokenRepository refreshTokenRepository;
 
     private SecretKey getSigninKey() {
-        return Keys.hmacShaKeyFor(jwtProperties.getSecret().getBytes());
+        return Keys.hmacShaKeyFor(jwtProperties.getSecret().getBytes(StandardCharsets.UTF_8));
     }
 
     private Claims extractAllClaims(String token) {
