@@ -3,7 +3,9 @@
  * Safely handles undefined/null/NaN — returns "$0.00" in those cases.
  * e.g. 1234.5 → "$1,234.50"
  */
-export const formatCurrency = (amount: number | string | undefined | null): string => {
+export const formatCurrency = (
+  amount: number | string | undefined | null,
+): string => {
   const num = typeof amount === "string" ? parseFloat(amount) : (amount ?? 0);
   if (isNaN(num)) return "$0.00";
   return new Intl.NumberFormat("en-US", {
@@ -26,5 +28,6 @@ export const formatDate = (dateStr: string | undefined | null): string => {
     year: "numeric",
     month: "short",
     day: "numeric",
+    timeZone: "UTC",
   });
 };
