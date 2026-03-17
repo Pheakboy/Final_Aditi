@@ -9,6 +9,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -53,6 +54,20 @@ public class Loan {
 
     @Column(name = "admin_note")
     private String adminNote;
+
+    /** Annual interest rate, e.g. 0.12 = 12% per year */
+    @Column(name = "interest_rate")
+    @Builder.Default
+    private BigDecimal interestRate = new BigDecimal("0.12");
+
+    /** Loan repayment term in months, e.g. 12 */
+    @Column(name = "term_months")
+    @Builder.Default
+    private Integer termMonths = 12;
+
+    /** Date when the loan was approved and became active */
+    @Column(name = "start_date")
+    private LocalDate startDate;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;

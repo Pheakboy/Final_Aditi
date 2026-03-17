@@ -11,6 +11,7 @@ import groupproject.backend.service.NotificationService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,11 +28,14 @@ public class NotificationServiceImpl implements NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
     public NotificationServiceImpl(NotificationRepository notificationRepository,
-                                   UserRepository userRepository) {
+                                   UserRepository userRepository,
+                                   SimpMessagingTemplate messagingTemplate) {
         this.notificationRepository = notificationRepository;
         this.userRepository = userRepository;
+        this.messagingTemplate = messagingTemplate;
     }
 
     @Override
@@ -46,6 +50,20 @@ public class NotificationServiceImpl implements NotificationService {
                 .read(false)
                 .build();
         notificationRepository.save(notification);
+
+        // Push real-time via WebSocket
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("id", notification.getId().toString());
+        payload.put("title", title);
+        payload.put("message", message);
+        payload.put("type", type.name());
+        payload.put("isRead", false);
+        payload.put("createdAt", notification.getCreatedAt().toString());
+
+        messagingTemplate.convertAndSend(
+                "/topic/notifications/" + user.getId(),
+                payload
+        );
     }
 
     @Override

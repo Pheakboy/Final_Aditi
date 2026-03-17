@@ -50,21 +50,27 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers("/error").permitAll()
 
-                // H2 console (dev only — console is disabled in prod via application-prod.properties)
+                // H2 console (dev only)
                 .requestMatchers("/h2-console/**").permitAll()
+
+                // WebSocket endpoint
+                .requestMatchers("/ws/**").permitAll()
 
                 // Auth endpoints
                 .requestMatchers("/api/auth/me").authenticated()
                 .requestMatchers("/api/auth/profile").authenticated()
                 .requestMatchers("/api/auth/**").permitAll()
 
-                // Transaction endpoints — authenticated users only
+                // Transaction endpoints
                 .requestMatchers("/api/transactions/**").authenticated()
 
-                // Loan endpoints — authenticated users only
+                // Loan endpoints
                 .requestMatchers("/api/loans/**").authenticated()
 
-                // Admin endpoints — ADMIN role only
+                // Notification endpoints
+                .requestMatchers("/api/notifications/**").authenticated()
+
+                // Admin endpoints
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
                 .anyRequest().authenticated()

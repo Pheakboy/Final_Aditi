@@ -1,6 +1,7 @@
 package groupproject.backend.dto;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -21,6 +22,10 @@ public class LoanResponseDTO {
     private LoanStatus status;
     private String purpose;
     private String adminNote;
+    private BigDecimal interestRate;
+    private Integer termMonths;
+    private LocalDate startDate;
+    private BigDecimal monthlyPayment;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private String applicantEmail;
