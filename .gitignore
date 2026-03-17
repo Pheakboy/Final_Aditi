@@ -72,8 +72,10 @@ frontend/next-env.d.ts
 
 # Dev/planning docs — not needed in repo
 script.md
+AddOnScript1.md
+AddOnScript2.md
 database-schema.sql
 
 # OS junk
 Thumbs.db
-desktop.ini
+desktop.ini
