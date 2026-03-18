@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../context/AuthContext";
-import Sidebar from "../../components/Sidebar";
+import UserLayout from "../../components/UserLayout";
 import { notificationApi } from "../../services/api";
 
 interface Notification {
@@ -119,30 +119,17 @@ export default function NotificationsPage() {
       </div>
     );
 
+  const notifSubtitle =
+    unreadCount > 0
+      ? `${unreadCount} unread message${unreadCount > 1 ? "s" : ""}`
+      : "All caught up!";
+
   return (
-    <div className="flex min-h-screen bg-slate-50">
-      <Sidebar />
-      <main className="flex-1 p-6 lg:p-8 overflow-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8 animate-fade-in">
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-slate-900">
-                Notifications
-              </h1>
-              {unreadCount > 0 && (
-                <span className="inline-flex items-center justify-center w-6 h-6 text-xs font-bold text-white bg-teal-600 rounded-full">
-                  {unreadCount > 99 ? "99+" : unreadCount}
-                </span>
-              )}
-            </div>
-            <p className="text-slate-500 mt-1 text-sm">
-              {unreadCount > 0
-                ? `${unreadCount} unread message${unreadCount > 1 ? "s" : ""}`
-                : "All caught up!"}
-            </p>
-          </div>
-          {unreadCount > 0 && (
+    <UserLayout title="Notifications" subtitle={notifSubtitle}>
+      <div className="p-6 lg:p-8">
+        {/* Action bar */}
+        {unreadCount > 0 && (
+          <div className="flex justify-end mb-6 animate-fade-in">
             <button
               onClick={handleMarkAllRead}
               disabled={markingAll}
@@ -163,8 +150,8 @@ export default function NotificationsPage() {
               </svg>
               {markingAll ? "Marking..." : "Mark all as read"}
             </button>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Notifications List */}
         <div className="bg-white rounded-2xl card-shadow overflow-hidden">
@@ -249,7 +236,7 @@ export default function NotificationsPage() {
             </div>
           )}
         </div>
-      </main>
-    </div>
+      </div>
+    </UserLayout>
   );
 }

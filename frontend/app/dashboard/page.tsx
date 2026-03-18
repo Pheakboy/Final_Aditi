@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../context/AuthContext";
-import Sidebar from "../../components/Sidebar";
+import UserLayout from "../../components/UserLayout";
 import RiskBadge from "../../components/RiskBadge";
 import LoadingScreen from "../../components/ui/LoadingScreen";
 import ErrorAlert from "../../components/ui/ErrorAlert";
@@ -33,32 +33,29 @@ export default function DashboardPage() {
     }
   }, [user, isLoading, isAdmin, router]);
 
-  useEffect(() => {
-    if (user && !isAdmin) {
-      setDataLoading(true);
-      const fetchData = async () => {
-        try {
-          const [txRes, loanRes, summaryRes] = await Promise.all([
-            transactionApi.getAll(),
-            loanApi.getMyLoans(),
-            dashboardApi.getSummary(),
-          ]);
-          setTransactions(txRes.data.data || []);
-          setLoans(loanRes.data.data || []);
-          setSummary(summaryRes.data.data || null);
-          setDataError("");
-        } catch (err) {
-          console.error("Failed to fetch dashboard data", err);
-          setDataError(
-            "Failed to load dashboard data. Please refresh the page.",
-          );
-        } finally {
-          setDataLoading(false);
-        }
-      };
-      fetchData();
+  const fetchData = useCallback(async () => {
+    if (!user || isAdmin) return;
+    setDataLoading(true);
+    try {
+      const [txRes, loanRes, summaryRes] = await Promise.all([
+        transactionApi.getAll(),
+        loanApi.getMyLoans(),
+        dashboardApi.getSummary(),
+      ]);
+      setTransactions(txRes.data.data || []);
+      setLoans(loanRes.data.data || []);
+      setSummary(summaryRes.data.data || null);
+      setDataError("");
+    } catch {
+      setDataError("Failed to load dashboard data. Please refresh the page.");
+    } finally {
+      setDataLoading(false);
     }
   }, [user, isAdmin]);
+
+  useEffect(() => {
+    if (user && !isAdmin) fetchData();
+  }, [user, isAdmin, fetchData]);
 
   if (isLoading) {
     return <LoadingScreen color="border-teal-500" />;
@@ -153,26 +150,8 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
-      <Sidebar />
-      <main className="flex-1 p-6 lg:p-10 overflow-auto bg-slate-50">
-
-        {/* Header */}
-        <div className="mb-8 animate-slide-up flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Dashboard</h1>
-            <p className="text-slate-500 mt-1 text-sm font-medium">
-              Welcome back,{" "}
-              <span className="font-semibold text-slate-900">
-                {user?.username}
-              </span>
-            </p>
-          </div>
-          <div className="text-sm font-semibold text-slate-500 bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm inline-block">
-            {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' })}
-          </div>
-        </div>
-
+    <UserLayout title="Dashboard" onRefresh={fetchData}>
+      <div className="p-6 lg:p-10">
         {dataError && <ErrorAlert message={dataError} />}
 
         {/* Stat Cards - Primary Metrics */}
@@ -182,7 +161,7 @@ export default function DashboardPage() {
             value={formatCurrency(totalIncome)}
             icon={
               <svg
-                className="w-5 h-5 text-white"
+                className="w-7 h-7 text-teal-500"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -203,7 +182,7 @@ export default function DashboardPage() {
             value={formatCurrency(totalExpense)}
             icon={
               <svg
-                className="w-5 h-5 text-white"
+                className="w-7 h-7 text-rose-500"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -224,7 +203,7 @@ export default function DashboardPage() {
             value={formatCurrency(savingsBalance)}
             icon={
               <svg
-                className="w-5 h-5 text-white"
+                className="w-7 h-7 text-sky-500"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -248,7 +227,7 @@ export default function DashboardPage() {
             sub={`${pendingLoans} pending · ${approvedLoans} approved`}
             icon={
               <svg
-                className="w-5 h-5 text-white"
+                className="w-7 h-7 text-amber-500"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -268,45 +247,62 @@ export default function DashboardPage() {
 
         {/* Performance & Risk (Secondary Stats) */}
         <div className="mb-4 mt-8 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-slate-800 tracking-tight">Performance & Risk</h2>
+          <h2 className="text-xl font-bold text-slate-800 tracking-tight">
+            Performance & Risk
+          </h2>
           <div className="h-px bg-slate-200/60 flex-1 ml-6"></div>
         </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10 animate-slide-up" style={{ animationDelay: "100ms" }}>
+
+        <div
+          className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10 animate-slide-up"
+          style={{ animationDelay: "100ms" }}
+        >
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 relative overflow-hidden transition-all hover:shadow-md">
             <div className="relative z-10">
-              <p className="text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Avg. Monthly</p>
+              <p className="text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">
+                Avg. Monthly
+              </p>
               <p className="text-2xl font-extrabold text-slate-900 tracking-tight">
                 {formatCurrency(avgMonthlyIncome)}
               </p>
             </div>
             <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-emerald-50 rounded-full opacity-50"></div>
           </div>
-          
+
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 relative overflow-hidden transition-all hover:shadow-md">
             <div className="relative z-10">
-              <p className="text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Transactions</p>
+              <p className="text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">
+                Transactions
+              </p>
               <div className="flex items-baseline gap-2">
                 <p className="text-2xl font-extrabold text-slate-900 tracking-tight">
                   {summary?.totalTransactions ?? transactions.length}
                 </p>
-                <span className="text-xs font-semibold text-slate-500">recorded</span>
+                <span className="text-xs font-semibold text-slate-500">
+                  recorded
+                </span>
               </div>
             </div>
             <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-sky-50 rounded-full opacity-50"></div>
           </div>
-          
+
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 relative overflow-hidden transition-all hover:shadow-md">
             <div className="relative z-10">
-              <p className="text-xs font-bold text-slate-500 mb-2 uppercase tracking-wider">Risk Level</p>
+              <p className="text-xs font-bold text-slate-500 mb-2 uppercase tracking-wider">
+                Risk Level
+              </p>
               <div className="mt-0.5">
                 {summary?.currentRiskLevel ? (
                   <RiskBadge
-                    level={summary.currentRiskLevel as "LOW" | "MEDIUM" | "HIGH"}
+                    level={
+                      summary.currentRiskLevel as "LOW" | "MEDIUM" | "HIGH"
+                    }
                     score={summary.currentRiskScore ?? undefined}
                   />
                 ) : (
-                  <p className="text-slate-500 text-xs font-semibold bg-slate-50 inline-block px-2.5 py-1 rounded-md border border-slate-200">No data</p>
+                  <p className="text-slate-500 text-xs font-semibold bg-slate-50 inline-block px-2.5 py-1 rounded-md border border-slate-200">
+                    No data
+                  </p>
                 )}
               </div>
             </div>
@@ -316,7 +312,9 @@ export default function DashboardPage() {
 
         {/* Action Center Divider */}
         <div className="mb-4 mt-8 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-slate-800 tracking-tight">Action Center</h2>
+          <h2 className="text-xl font-bold text-slate-800 tracking-tight">
+            Action Center
+          </h2>
           <div className="h-px bg-slate-200/60 flex-1 ml-6"></div>
         </div>
 
@@ -330,7 +328,7 @@ export default function DashboardPage() {
             <QuickActions actions={quickActions} />
           </div>
         </div>
-      </main>
-    </div>
+      </div>
+    </UserLayout>
   );
 }

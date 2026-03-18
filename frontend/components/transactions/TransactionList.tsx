@@ -83,9 +83,14 @@ export default function TransactionList({
                 </svg>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-slate-800 truncate">
-                  {tx.description ||
-                    (tx.type === "INCOME" ? "Income" : "Expense")}
+                <p className="text-sm font-medium text-slate-800 truncate max-w-55">
+                  {tx.description
+                    ? tx.description.length > 40
+                      ? tx.description.slice(0, 40) + "…"
+                      : tx.description
+                    : tx.type === "INCOME"
+                      ? "Income"
+                      : "Expense"}
                 </p>
                 <p className="text-xs text-slate-400">
                   {formatDate(tx.transactionDate)}

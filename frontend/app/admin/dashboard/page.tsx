@@ -2,30 +2,44 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { useAuth } from "../../../context/AuthContext";
-import Sidebar from "../../../components/Sidebar";
-import LoanCard from "../../../components/LoanCard";
 import { adminApi } from "../../../services/api";
-import { Loan } from "../../../types";
+import AdminLayout from "../../../components/admin/AdminLayout";
+import { Loan, AnalyticsData } from "../../../types";
 import LoadingScreen from "../../../components/ui/LoadingScreen";
 import ErrorAlert from "../../../components/ui/ErrorAlert";
 import StatCard from "../../../components/ui/StatCard";
-import NoteModal from "../../../components/admin/NoteModal";
+import {
+  Chart as ChartJS,
+  ArcElement,
+  Tooltip,
+  Legend,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Filler,
+} from "chart.js";
+import { Doughnut, Line } from "react-chartjs-2";
+
+ChartJS.register(
+  ArcElement,
+  Tooltip,
+  Legend,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Filler,
+);
 
 export default function AdminDashboardPage() {
   const { user, isLoading, isAdmin } = useAuth();
   const router = useRouter();
-  const [pendingLoans, setPendingLoans] = useState<Loan[]>([]);
   const [allLoans, setAllLoans] = useState<Loan[]>([]);
+  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [dataLoading, setDataLoading] = useState(false);
   const [dataError, setDataError] = useState("");
-  const [processingId, setProcessingId] = useState<string | null>(null);
-  const [noteModal, setNoteModal] = useState<{
-    loanId: string;
-    decision: "APPROVED" | "REJECTED";
-  } | null>(null);
-  const [note, setNote] = useState("");
 
   useEffect(() => {
     if (!isLoading && !user) router.push("/login");
@@ -35,14 +49,13 @@ export default function AdminDashboardPage() {
   const fetchData = async () => {
     setDataLoading(true);
     try {
-      const [pendingRes, allRes] = await Promise.all([
-        adminApi.getPendingLoans(),
+      const [allRes, analyticsRes] = await Promise.all([
         adminApi.getAllLoans(),
+        adminApi.getAnalytics(),
       ]);
-      setPendingLoans(pendingRes.data.data || []);
       setAllLoans(allRes.data.data || []);
-    } catch (err) {
-      console.error("Failed to fetch admin data", err);
+      setAnalytics(analyticsRes.data.data || null);
+    } catch {
       setDataError("Failed to load dashboard data. Please refresh.");
     } finally {
       setDataLoading(false);
@@ -50,31 +63,10 @@ export default function AdminDashboardPage() {
   };
 
   useEffect(() => {
-    if (user && isAdmin) fetchData();
-  }, [user, isAdmin]);
-
-  const handleDecide = async (
-    loanId: string,
-    decision: "APPROVED" | "REJECTED",
-    noteText?: string,
-  ) => {
-    setProcessingId(loanId);
-    try {
-      await adminApi.decideLoan(loanId, { decision, note: noteText });
-      await fetchData();
-    } catch (err) {
-      console.error("Failed to process decision", err);
-    } finally {
-      setProcessingId(null);
-      setNoteModal(null);
-      setNote("");
+    if (user && isAdmin) {
+      fetchData();
     }
-  };
-
-  const openNoteModal = (loanId: string, decision: "APPROVED" | "REJECTED") => {
-    setNoteModal({ loanId, decision });
-    setNote("");
-  };
+  }, [user, isAdmin]);
 
   if (isLoading) {
     return <LoadingScreen color="border-indigo-500" />;
@@ -82,35 +74,149 @@ export default function AdminDashboardPage() {
 
   const approvedCount = allLoans.filter((l) => l.status === "APPROVED").length;
   const rejectedCount = allLoans.filter((l) => l.status === "REJECTED").length;
+  const pendingCount = allLoans.filter((l) => l.status === "PENDING").length;
+
+  // ── Chart data ────────────────────────────────────────────────────────────
+  const loanStatusChartData = {
+    labels: ["Approved", "Rejected", "Pending"],
+    datasets: [
+      {
+        data: [approvedCount, rejectedCount, pendingCount],
+        backgroundColor: ["#10b981", "#ef4444", "#f59e0b"],
+        borderColor: ["#d1fae5", "#fee2e2", "#fef3c7"],
+        borderWidth: 3,
+        hoverOffset: 6,
+      },
+    ],
+  };
+
+  const riskChartData = analytics
+    ? {
+        labels: ["Low Risk", "Medium Risk", "High Risk"],
+        datasets: [
+          {
+            data: [
+              analytics.riskDistribution.low,
+              analytics.riskDistribution.medium,
+              analytics.riskDistribution.high,
+            ],
+            backgroundColor: ["#10b981", "#f59e0b", "#ef4444"],
+            borderColor: ["#d1fae5", "#fef3c7", "#fee2e2"],
+            borderWidth: 3,
+            hoverOffset: 6,
+          },
+        ],
+      }
+    : null;
+
+  const sortedMonthly = analytics
+    ? [...analytics.monthlyStats].sort((a, b) =>
+        a.year !== b.year ? a.year - b.year : a.month - b.month,
+      )
+    : [];
+
+  const monthlyChartData = {
+    labels: sortedMonthly.map((m) =>
+      new Date(m.year, m.month - 1).toLocaleString("en-US", {
+        month: "short",
+        year: "2-digit",
+      }),
+    ),
+    datasets: [
+      {
+        label: "Applications",
+        data: sortedMonthly.map((m) => m.count),
+        borderColor: "#6366f1",
+        backgroundColor: (ctx: { chart: ChartJS }) => {
+          const gradient = ctx.chart.ctx.createLinearGradient(0, 0, 0, 280);
+          gradient.addColorStop(0, "rgba(99, 102, 241, 0.3)");
+          gradient.addColorStop(1, "rgba(99, 102, 241, 0.0)");
+          return gradient;
+        },
+        pointBackgroundColor: "#ffffff",
+        pointBorderColor: "#6366f1",
+        pointBorderWidth: 2.5,
+        pointRadius: 5,
+        pointHoverRadius: 8,
+        pointHoverBackgroundColor: "#6366f1",
+        pointHoverBorderColor: "#ffffff",
+        pointHoverBorderWidth: 2,
+        borderWidth: 2.5,
+        fill: true,
+        tension: 0.45,
+      },
+    ],
+  };
+
+  const doughnutOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: "bottom" as const,
+        labels: { padding: 16, font: { size: 12 } },
+      },
+      tooltip: {
+        callbacks: {
+          label: (ctx: {
+            label: string;
+            raw: unknown;
+            chart: { data: { datasets: Array<{ data: unknown[] }> } };
+          }) =>
+            ` ${ctx.label}: ${ctx.raw} (${Math.round(((ctx.raw as number) / (ctx.chart.data.datasets[0].data as number[]).reduce((a, b) => a + b, 0)) * 100)}%)`,
+        },
+      },
+    },
+    cutout: "65%",
+  };
+
+  const lineOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { mode: "index" as const, intersect: false },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: "#1e293b",
+        titleColor: "#94a3b8",
+        bodyColor: "#f1f5f9",
+        padding: 12,
+        cornerRadius: 10,
+        callbacks: {
+          label: (ctx: { parsed: { y: number | null } }) =>
+            `  ${ctx.parsed.y ?? 0} application${(ctx.parsed.y ?? 0) !== 1 ? "s" : ""}`,
+        },
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: { stepSize: 1, color: "#94a3b8", font: { size: 11 } },
+        grid: { color: "rgba(0,0,0,0.05)" },
+        border: { display: false },
+      },
+      x: {
+        ticks: { color: "#94a3b8", font: { size: 11 } },
+        grid: { display: false },
+        border: { display: false },
+      },
+    },
+  };
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
-      <Sidebar />
-      <main className="flex-1 p-6 lg:p-10 overflow-auto bg-slate-50">
-        {/* Header */}
-        <div className="mb-8 animate-slide-up flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Admin Dashboard</h1>
-            <p className="text-slate-500 mt-1 text-sm font-medium">
-              Review and manage loan applications across the platform
-            </p>
-          </div>
-          <div className="text-sm font-semibold text-slate-500 bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm inline-block">
-            {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' })}
-          </div>
-        </div>
-
+    <AdminLayout title="Admin Dashboard" onRefresh={fetchData}>
+      <div className="p-6 lg:p-10">
         {dataError && <ErrorAlert message={dataError} />}
 
         {/* Stat Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
           <StatCard
             label="Total Applications"
             value={allLoans.length}
             iconBg="gradient-indigo"
             icon={
               <svg
-                className="w-5 h-5 text-white"
+                className="w-7 h-7 text-blue-500"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -126,12 +232,12 @@ export default function AdminDashboardPage() {
           />
           <StatCard
             label="Pending Review"
-            value={pendingLoans.length}
+            value={pendingCount}
             valueColor="text-amber-600"
             iconBg="gradient-amber"
             icon={
               <svg
-                className="w-5 h-5 text-white"
+                className="w-7 h-7 text-amber-500"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -152,7 +258,7 @@ export default function AdminDashboardPage() {
             iconBg="gradient-emerald"
             icon={
               <svg
-                className="w-5 h-5 text-white"
+                className="w-7 h-7 text-green-500"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -173,7 +279,7 @@ export default function AdminDashboardPage() {
             iconBg="gradient-rose"
             icon={
               <svg
-                className="w-5 h-5 text-white"
+                className="w-7 h-7 text-rose-500"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -189,87 +295,150 @@ export default function AdminDashboardPage() {
           />
         </div>
 
-        {/* Pending Applications Section */}
-        <div className="mb-4 mt-8 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <h2 className="text-xl font-bold text-slate-800 tracking-tight">Pending Applications</h2>
-            {pendingLoans.length > 0 && (
-              <span className="bg-amber-500/10 border border-amber-500/20 text-amber-700 text-xs font-bold px-2.5 py-1 rounded-full shadow-sm shadow-amber-500/10">
-                {pendingLoans.length}
-              </span>
-            )}
+        {/* Charts */}
+        {dataLoading ? (
+          <div className="flex items-center justify-center h-64 text-slate-400 text-sm font-medium">
+            Loading charts…
           </div>
-          <div className="h-px bg-slate-200/60 flex-1 ml-6 mr-6 hidden sm:block"></div>
-          <Link
-            href="/admin/applicants"
-            className="text-sm font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-4 py-2 rounded-xl transition-all hover:bg-indigo-100"
+        ) : (
+          <div
+            className="space-y-6 animate-slide-up"
+            style={{ animationDelay: "100ms" }}
           >
-            Review all →
-          </Link>
-        </div>
-
-        <div className="animate-slide-up" style={{ animationDelay: "150ms" }}>
-          {pendingLoans.length === 0 ? (
-            <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-16 text-center">
-              <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-emerald-100">
-                <svg
-                  className="w-8 h-8 text-emerald-500"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+            {/* Row 1 — two doughnuts */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Loan Status */}
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+                <h2 className="text-base font-bold text-slate-800 mb-1">
+                  Loan Status Distribution
+                </h2>
+                <p className="text-xs text-slate-400 mb-5">
+                  Breakdown of all {allLoans.length} applications
+                </p>
+                <div className="relative h-60">
+                  <Doughnut
+                    data={loanStatusChartData}
+                    options={doughnutOptions}
                   />
-                </svg>
+                </div>
+                <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+                  {[
+                    {
+                      label: "Approved",
+                      value: approvedCount,
+                      color: "text-emerald-600 bg-emerald-50",
+                    },
+                    {
+                      label: "Rejected",
+                      value: rejectedCount,
+                      color: "text-red-500 bg-red-50",
+                    },
+                    {
+                      label: "Pending",
+                      value: pendingCount,
+                      color: "text-amber-600 bg-amber-50",
+                    },
+                  ].map(({ label, value, color }) => (
+                    <div
+                      key={label}
+                      className={`rounded-xl px-3 py-2 ${color}`}
+                    >
+                      <p className="text-lg font-black">{value}</p>
+                      <p className="text-[11px] font-semibold opacity-80">
+                        {label}
+                      </p>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <p className="text-slate-800 text-lg font-bold tracking-tight mb-1">
-                All caught up!
-              </p>
-              <p className="text-slate-500 text-sm font-medium">
-                There are no pending loan applications at this time.
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-              {pendingLoans.map((loan) => (
-                <LoanCard
-                  key={loan.id}
-                  loan={loan}
-                  showApplicant={true}
-                  onApprove={(id) => openNoteModal(id, "APPROVED")}
-                  onReject={(id) => openNoteModal(id, "REJECTED")}
-                  isProcessing={processingId === loan.id}
-                />
-              ))}
-            </div>
-          )}
-        </div>
 
-        {/* Note Modal */}
-        {noteModal && (
-          <NoteModal
-            decision={noteModal.decision}
-            note={note}
-            isProcessing={processingId !== null}
-            onNoteChange={setNote}
-            onConfirm={() =>
-              handleDecide(
-                noteModal.loanId,
-                noteModal.decision,
-                note || undefined,
-              )
-            }
-            onCancel={() => {
-              setNoteModal(null);
-              setNote("");
-            }}
-          />
+              {/* Risk Distribution */}
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+                <h2 className="text-base font-bold text-slate-800 mb-1">
+                  Risk Distribution
+                </h2>
+                <p className="text-xs text-slate-400 mb-5">
+                  Based on {analytics?.riskDistribution.total ?? 0} scored
+                  applications
+                </p>
+                <div className="relative h-60">
+                  {riskChartData ? (
+                    <Doughnut data={riskChartData} options={doughnutOptions} />
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-slate-400 text-sm">
+                      No data yet
+                    </div>
+                  )}
+                </div>
+                {analytics && (
+                  <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+                    {[
+                      {
+                        label: "Low",
+                        value: analytics.riskDistribution.low,
+                        color: "text-emerald-600 bg-emerald-50",
+                      },
+                      {
+                        label: "Medium",
+                        value: analytics.riskDistribution.medium,
+                        color: "text-amber-600 bg-amber-50",
+                      },
+                      {
+                        label: "High",
+                        value: analytics.riskDistribution.high,
+                        color: "text-red-500 bg-red-50",
+                      },
+                    ].map(({ label, value, color }) => (
+                      <div
+                        key={label}
+                        className={`rounded-xl px-3 py-2 ${color}`}
+                      >
+                        <p className="text-lg font-black">{value}</p>
+                        <p className="text-[11px] font-semibold opacity-80">
+                          {label} Risk
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Row 2 — monthly trend */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+              <div className="flex items-start justify-between mb-5">
+                <div>
+                  <h2 className="text-base font-bold text-slate-800 mb-1">
+                    Monthly Applications Trend
+                  </h2>
+                  <p className="text-xs text-slate-400">
+                    Number of loan applications submitted per month
+                  </p>
+                </div>
+                {sortedMonthly.length > 0 && (
+                  <div className="text-right">
+                    <p className="text-2xl font-black text-indigo-600">
+                      {sortedMonthly.reduce((s, m) => s + m.count, 0)}
+                    </p>
+                    <p className="text-[11px] text-slate-400 font-medium">
+                      total
+                    </p>
+                  </div>
+                )}
+              </div>
+              <div className="relative h-72">
+                {sortedMonthly.length > 0 ? (
+                  <Line data={monthlyChartData} options={lineOptions} />
+                ) : (
+                  <div className="flex items-center justify-center h-full text-slate-400 text-sm">
+                    No monthly data yet
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         )}
-      </main>
-    </div>
+      </div>
+    </AdminLayout>
   );
 }

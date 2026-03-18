@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../../context/AuthContext";
-import Sidebar from "../../../components/Sidebar";
+import AdminLayout from "../../../components/admin/AdminLayout";
 import { adminApi } from "../../../services/api";
 import { AdminUser } from "../../../types";
 import LoadingScreen from "../../../components/ui/LoadingScreen";
@@ -145,9 +145,8 @@ export default function AdminUsersPage() {
   if (isLoading) return <LoadingScreen color="border-indigo-500" />;
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <Sidebar />
-      <main className="flex-1 p-8">
+    <AdminLayout title="Users" subtitle="Manage registered user accounts">
+      <div className="p-8">
         {dataError && <ErrorAlert message={dataError} />}
 
         <div className="flex items-center justify-between mb-8">
@@ -247,7 +246,7 @@ export default function AdminUsersPage() {
           onEdit={openEdit}
           onToggleStatus={handleToggleStatus}
         />
-      </main>
+      </div>
 
       {showCreate && (
         <CreateUserModal
@@ -272,6 +271,6 @@ export default function AdminUsersPage() {
           onClose={() => setEditTarget(null)}
         />
       )}
-    </div>
+    </AdminLayout>
   );
 }

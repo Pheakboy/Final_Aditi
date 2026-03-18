@@ -52,7 +52,8 @@ api.interceptors.response.use(
       isRefreshing = true;
       try {
         await api.post("/api/auth/refresh");
-        if (typeof window !== "undefined") localStorage.removeItem("accessToken");
+        if (typeof window !== "undefined")
+          localStorage.removeItem("accessToken");
         delete originalRequest.headers.Authorization;
         processQueue("");
         return api(originalRequest);
@@ -74,30 +75,56 @@ api.interceptors.response.use(
 
 // ─── Auth API ────────────────────────────────────────────────────────────────
 export const authApi = {
-  register: (data: { username: string; email: string; password: string; confirmPassword: string }) =>
-    api.post("/api/auth/register", data),
-  login: (data: { email: string; password: string }) => api.post("/api/auth/login", data),
+  register: (data: {
+    username: string;
+    email: string;
+    password: string;
+    confirmPassword: string;
+  }) => api.post("/api/auth/register", data),
+  login: (data: { email: string; password: string }) =>
+    api.post("/api/auth/login", data),
   me: () => api.get("/api/auth/me"),
   logout: () => api.post("/api/auth/logout"),
   refresh: () => api.post("/api/auth/refresh"),
-  updateProfile: (data: { username?: string; phoneNumber?: string; address?: string; bio?: string; photo?: string }) =>
-    api.put("/api/auth/profile", data),
+  updateProfile: (data: {
+    username?: string;
+    phoneNumber?: string;
+    address?: string;
+    bio?: string;
+    photo?: string;
+  }) => api.put("/api/auth/profile", data),
 };
 
 // ─── Transaction API ─────────────────────────────────────────────────────────
 export const transactionApi = {
-  add: (data: { type: "INCOME" | "EXPENSE"; amount: number; description?: string }) =>
-    api.post("/api/transactions", data),
+  add: (data: {
+    type: "INCOME" | "EXPENSE";
+    amount: number;
+    description?: string;
+  }) => api.post("/api/transactions", data),
   getAll: (params?: { type?: string; from?: string; to?: string }) =>
     api.get("/api/transactions", { params }),
   exportCSV: () =>
     api.get("/api/users/me/transactions/export", { responseType: "blob" }),
+  importFile: (file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    return api.post<{
+      data: { imported: number; skipped: number; errors: string[] };
+    }>("/api/transactions/import", form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
 };
 
 // ─── Loan API ────────────────────────────────────────────────────────────────
 export const loanApi = {
-  apply: (data: { loanAmount: number; monthlyIncome: number; monthlyExpense: number; purpose?: string }) =>
-    api.post("/api/loans/apply", data),
+  apply: (data: {
+    loanAmount: number;
+    monthlyIncome: number;
+    monthlyExpense: number;
+    purpose?: string;
+  }) => api.post("/api/loans/apply", data),
   getMyLoans: () => api.get("/api/loans/my"),
   getLoanById: (id: string) => api.get(`/api/users/me/loans/${id}`),
 };
@@ -116,52 +143,82 @@ export const adminApi = {
   // Loans
   getAllLoans: () => api.get("/api/admin/loans"),
   getPendingLoans: () => api.get("/api/admin/loans/pending"),
-  getLoansFiltered: (params: { page?: number; size?: number; status?: string; riskLevel?: string; from?: string; to?: string }) =>
-    api.get("/api/admin/loans/paged", { params }),
+  getLoansFiltered: (params: {
+    page?: number;
+    size?: number;
+    status?: string;
+    riskLevel?: string;
+    from?: string;
+    to?: string;
+  }) => api.get("/api/admin/loans/paged", { params }),
   getLoanById: (loanId: string) => api.get(`/api/admin/loans/${loanId}`),
   decideLoan: (loanId: string, data: { decision: string; note?: string }) =>
     api.post(`/api/admin/loans/${loanId}/decide`, data),
   deleteLoan: (loanId: string) => api.delete(`/api/admin/loans/${loanId}`),
   updateLoanNote: (loanId: string, adminNote: string) =>
     api.put(`/api/admin/loans/${loanId}/note`, { adminNote }),
-  bulkApprove: (loanIds: string[], note?: string) => api.post("/api/admin/loans/bulk-approve", { loanIds, note }),
+  bulkApprove: (loanIds: string[], note?: string) =>
+    api.post("/api/admin/loans/bulk-approve", { loanIds, note }),
   bulkReject: (loanIds: string[], note: string) =>
     api.post("/api/admin/loans/bulk-reject", { loanIds, note }),
-  exportLoans: () => api.get("/api/admin/loans/export", { responseType: "blob" }),
+  exportLoans: () =>
+    api.get("/api/admin/loans/export", { responseType: "blob" }),
 
   // Users
-  getUsers: (params?: { page?: number; size?: number; search?: string; status?: string }) =>
-    api.get("/api/admin/users", { params }),
-  getUserProfile: (userId: number | string) => api.get(`/api/admin/users/${userId}`),
+  getUsers: (params?: {
+    page?: number;
+    size?: number;
+    search?: string;
+    status?: string;
+  }) => api.get("/api/admin/users", { params }),
+  getUserProfile: (userId: number | string) =>
+    api.get(`/api/admin/users/${userId}`),
   createUser: (data: { username: string; email: string; role: string }) =>
     api.post("/api/admin/users", data),
-  updateUser: (userId: number | string, data: { username?: string; email?: string; isActive?: boolean }) =>
-    api.put(`/api/admin/users/${userId}`, data),
-  deactivateUser: (userId: number | string) => api.put(`/api/admin/users/${userId}/deactivate`),
-  reactivateUser: (userId: number | string) => api.put(`/api/admin/users/${userId}/reactivate`),
-  getUserLoans: (userId: number | string) => api.get(`/api/admin/users/${userId}/loans`),
-  getUserTransactions: (userId: number | string, params?: { page?: number; size?: number; type?: string }) =>
-    api.get(`/api/admin/users/${userId}/transactions`, { params }),
-  exportUsers: () => api.get("/api/admin/users/export", { responseType: "blob" }),
+  updateUser: (
+    userId: number | string,
+    data: { username?: string; email?: string; isActive?: boolean },
+  ) => api.put(`/api/admin/users/${userId}`, data),
+  deactivateUser: (userId: number | string) =>
+    api.put(`/api/admin/users/${userId}/deactivate`),
+  reactivateUser: (userId: number | string) =>
+    api.put(`/api/admin/users/${userId}/reactivate`),
+  getUserLoans: (userId: number | string) =>
+    api.get(`/api/admin/users/${userId}/loans`),
+  getUserTransactions: (
+    userId: number | string,
+    params?: { page?: number; size?: number; type?: string },
+  ) => api.get(`/api/admin/users/${userId}/transactions`, { params }),
+  exportUsers: () =>
+    api.get("/api/admin/users/export", { responseType: "blob" }),
 
   // Analytics
   getAnalytics: () => api.get("/api/admin/analytics"),
   getAnalyticsSummary: () => api.get("/api/admin/analytics/summary"),
   getUserGrowth: () => api.get("/api/admin/analytics/user-growth"),
-  exportAnalytics: () => api.get("/api/admin/analytics/export", { responseType: "blob" }),
+  exportAnalytics: () =>
+    api.get("/api/admin/analytics/export", { responseType: "blob" }),
 
   // Audit Logs
-  getAuditLogs: (params?: { page?: number; size?: number; action?: string; from?: string; to?: string }) =>
-    api.get("/api/admin/audit-logs", { params }),
+  getAuditLogs: (params?: {
+    page?: number;
+    size?: number;
+    action?: string;
+    from?: string;
+    to?: string;
+  }) => api.get("/api/admin/audit-logs", { params }),
 
   // Notifications
-  sendNotificationToUser: (userId: number | string, data: { title: string; message: string }) =>
-    api.post(`/api/admin/notifications/user/${userId}`, data),
+  sendNotificationToUser: (
+    userId: number | string,
+    data: { title: string; message: string },
+  ) => api.post(`/api/admin/notifications/user/${userId}`, data),
   broadcastNotification: (data: { title: string; message: string }) =>
     api.post("/api/admin/notifications/broadcast", data),
   getAdminNotifications: (params?: { page?: number; size?: number }) =>
     api.get("/api/admin/notifications", { params }),
-  deleteNotification: (id: string) => api.delete(`/api/admin/notifications/${id}`),
+  deleteNotification: (id: string) =>
+    api.delete(`/api/admin/notifications/${id}`),
 };
 
 // ─── Dashboard API ───────────────────────────────────────────────────────────

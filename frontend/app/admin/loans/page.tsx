@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "../../../context/AuthContext";
-import Sidebar from "../../../components/Sidebar";
+import AdminLayout from "../../../components/admin/AdminLayout";
 import LoanCard from "../../../components/LoanCard";
 import { adminApi } from "../../../services/api";
 import { Loan, PagedResponse } from "../../../types";
@@ -73,8 +73,7 @@ export default function AdminLoansPage() {
         setCurrentPage(paged.page);
         setTotalPages(paged.totalPages);
         setTotalElements(paged.totalElements);
-      } catch (err) {
-        console.error("Failed to fetch loans", err);
+      } catch {
         setDataError("Failed to load loan applications. Please refresh.");
       } finally {
         setDataLoading(false);
@@ -99,8 +98,8 @@ export default function AdminLoansPage() {
     try {
       await adminApi.decideLoan(loanId, { decision, note: noteText });
       await fetchLoans(currentPage);
-    } catch (err) {
-      console.error("Failed to process decision", err);
+    } catch {
+      setDataError("Failed to process decision. Please try again.");
     } finally {
       setProcessingId(null);
       setNoteModal(null);
@@ -157,9 +156,11 @@ export default function AdminLoansPage() {
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <Sidebar />
-      <main className="flex-1 p-8">
+    <AdminLayout
+      title="Loan Applications"
+      subtitle="Manage and review all loan requests"
+    >
+      <div className="p-8">
         {dataError && <ErrorAlert message={dataError} />}
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -376,7 +377,7 @@ export default function AdminLoansPage() {
             }}
           />
         )}
-      </main>
+      </div>
 
       {/* Delete Modal */}
       {deleteModal && (
@@ -397,6 +398,6 @@ export default function AdminLoansPage() {
           onCancel={() => setEditNoteModal(null)}
         />
       )}
-    </div>
+    </AdminLayout>
   );
 }

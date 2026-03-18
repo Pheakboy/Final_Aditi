@@ -1,5 +1,3 @@
-import axios from "axios";
-
 interface FormData {
   type: "INCOME" | "EXPENSE";
   amount: string;
@@ -73,7 +71,7 @@ export default function AddTransactionForm({
         </div>
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1.5">
-            Description (optional)
+            Transaction Details (optional)
           </label>
           <input
             type="text"
