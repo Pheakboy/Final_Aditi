@@ -112,7 +112,11 @@ export default function AuditLogsPage() {
   return (
     <AdminLayout
       title="Audit Logs"
-      subtitle={`${totalElements} events recorded · Read-only`}
+      subtitle={
+        dataLoading
+          ? "Loading…"
+          : `${totalElements} events recorded · Read-only`
+      }
     >
       <div className="p-6 lg:p-8">
         {/* Filters */}
@@ -188,11 +192,25 @@ export default function AuditLogsPage() {
             </thead>
             <tbody className="divide-y divide-slate-50">
               {dataLoading ? (
-                <tr>
-                  <td colSpan={5} className="text-center py-12">
-                    <div className="animate-spin rounded-full h-8 w-8 border-2 border-indigo-500 border-t-transparent mx-auto" />
-                  </td>
-                </tr>
+                Array.from({ length: 10 }).map((_, i) => (
+                  <tr key={i} className="animate-pulse">
+                    <td className="px-5 py-3">
+                      <div className="h-5 bg-slate-200 rounded-full w-28"></div>
+                    </td>
+                    <td className="px-5 py-3">
+                      <div className="h-4 bg-slate-200 rounded w-32"></div>
+                    </td>
+                    <td className="px-5 py-3">
+                      <div className="h-3 bg-slate-200 rounded w-20"></div>
+                    </td>
+                    <td className="px-5 py-3">
+                      <div className="h-3 bg-slate-200 rounded w-24 font-mono"></div>
+                    </td>
+                    <td className="px-5 py-3">
+                      <div className="h-3 bg-slate-200 rounded w-36"></div>
+                    </td>
+                  </tr>
+                ))
               ) : logs.length === 0 ? (
                 <tr>
                   <td

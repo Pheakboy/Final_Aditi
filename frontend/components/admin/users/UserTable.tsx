@@ -19,9 +19,42 @@ export default function UserTable({
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
       {isLoading ? (
-        <div className="flex justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-2 border-indigo-500 border-t-transparent" />
-        </div>
+        <table className="w-full text-sm">
+          <thead className="bg-gray-50 border-b border-gray-200">
+            <tr>
+              {["User", "Roles", "Phone", "Status", "Actions"].map((h) => (
+                <th
+                  key={h}
+                  className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase"
+                >
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <tr key={i} className="animate-pulse">
+                <td className="px-4 py-3">
+                  <div className="h-4 bg-gray-200 rounded w-28 mb-1"></div>
+                  <div className="h-3 bg-gray-200 rounded w-40"></div>
+                </td>
+                <td className="px-4 py-3">
+                  <div className="h-5 bg-gray-200 rounded-full w-16"></div>
+                </td>
+                <td className="px-4 py-3">
+                  <div className="h-3 bg-gray-200 rounded w-24"></div>
+                </td>
+                <td className="px-4 py-3">
+                  <div className="h-5 bg-gray-200 rounded-full w-14"></div>
+                </td>
+                <td className="px-4 py-3">
+                  <div className="h-6 bg-gray-200 rounded w-32"></div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       ) : users.length === 0 ? (
         <div className="p-12 text-center text-gray-500">
           {search ? "No users match your search." : "No users found."}

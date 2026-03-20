@@ -51,11 +51,15 @@ api.interceptors.response.use(
       originalRequest._retry = true;
       isRefreshing = true;
       try {
-        await api.post("/api/auth/refresh");
-        if (typeof window !== "undefined")
-          localStorage.removeItem("accessToken");
-        delete originalRequest.headers.Authorization;
-        processQueue("");
+        const res = await api.post("/api/auth/refresh");
+        const newToken: string = res.data?.data?.accessToken;
+        if (newToken && typeof window !== "undefined") {
+          localStorage.setItem("accessToken", newToken);
+        }
+        if (originalRequest.headers) {
+          originalRequest.headers.Authorization = `Bearer ${newToken ?? ""}`;
+        }
+        processQueue(newToken ?? "");
         return api(originalRequest);
       } catch {
         pendingRequests = [];

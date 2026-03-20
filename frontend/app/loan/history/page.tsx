@@ -17,7 +17,7 @@ export default function LoanHistoryPage() {
   const [dataLoading, setDataLoading] = useState(false);
   const [dataError, setDataError] = useState("");
   const [filter, setFilter] = useState<
-    "ALL" | "PENDING" | "APPROVED" | "REJECTED"
+    "ALL" | "PENDING" | "APPROVED" | "ACTIVE" | "REJECTED" | "COMPLETED"
   >("ALL");
 
   useEffect(() => {
@@ -89,26 +89,91 @@ export default function LoanHistoryPage() {
         )}
 
         {/* Filter Tabs */}
-        <div className="flex gap-2 mb-6">
-          {(["ALL", "PENDING", "APPROVED", "REJECTED"] as const).map((f) => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`px-4 py-2 text-sm font-medium rounded-xl transition-all ${filter === f ? "gradient-teal text-white shadow-sm" : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"}`}
-            >
-              {f} (
-              {f === "ALL"
-                ? loans.length
-                : loans.filter((l) => l.status === f).length}
-              )
-            </button>
-          ))}
-        </div>
+        {dataLoading ? (
+          <div className="flex gap-2 mb-6 animate-pulse">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="h-9 bg-slate-200 rounded-xl w-24"></div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex gap-2 mb-6">
+            {(
+              [
+                "ALL",
+                "PENDING",
+                "APPROVED",
+                "ACTIVE",
+                "REJECTED",
+                "COMPLETED",
+              ] as const
+            ).map((f) => (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className={`px-4 py-2 text-sm font-medium rounded-xl transition-all ${filter === f ? "gradient-teal text-white shadow-sm" : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"}`}
+              >
+                {f} (
+                {f === "ALL"
+                  ? loans.length
+                  : loans.filter((l) => l.status === f).length}
+                )
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Loans Table */}
         {dataLoading ? (
-          <div className="flex justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-2 border-teal-500 border-t-transparent" />
+          <div className="bg-white rounded-2xl card-shadow overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 border-b border-slate-100">
+                <tr>
+                  {[
+                    "Amount",
+                    "Purpose",
+                    "Risk Score",
+                    "Status",
+                    "Applied Date",
+                    "Decision Date",
+                    "Note",
+                  ].map((h) => (
+                    <th
+                      key={h}
+                      className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide"
+                    >
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <tr key={i} className="animate-pulse">
+                    <td className="px-5 py-3">
+                      <div className="h-4 bg-slate-200 rounded w-20"></div>
+                    </td>
+                    <td className="px-5 py-3">
+                      <div className="h-3 bg-slate-200 rounded w-28"></div>
+                    </td>
+                    <td className="px-5 py-3">
+                      <div className="h-5 bg-slate-200 rounded-full w-16"></div>
+                    </td>
+                    <td className="px-5 py-3">
+                      <div className="h-5 bg-slate-200 rounded-full w-16"></div>
+                    </td>
+                    <td className="px-5 py-3">
+                      <div className="h-3 bg-slate-200 rounded w-24"></div>
+                    </td>
+                    <td className="px-5 py-3">
+                      <div className="h-3 bg-slate-200 rounded w-24"></div>
+                    </td>
+                    <td className="px-5 py-3">
+                      <div className="h-3 bg-slate-200 rounded w-20"></div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         ) : filteredLoans.length === 0 ? (
           <div className="bg-white rounded-2xl card-shadow p-12 text-center">
@@ -183,11 +248,13 @@ export default function LoanHistoryPage() {
                     <td className="px-5 py-3">
                       <span
                         className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
-                          loan.status === "APPROVED"
+                          loan.status === "APPROVED" || loan.status === "ACTIVE"
                             ? "bg-emerald-100 text-emerald-700"
-                            : loan.status === "REJECTED"
-                              ? "bg-red-100 text-red-700"
-                              : "bg-amber-100 text-amber-700"
+                            : loan.status === "COMPLETED"
+                              ? "bg-blue-100 text-blue-700"
+                              : loan.status === "REJECTED"
+                                ? "bg-red-100 text-red-700"
+                                : "bg-amber-100 text-amber-700"
                         }`}
                       >
                         {loan.status}

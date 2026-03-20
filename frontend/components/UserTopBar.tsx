@@ -146,7 +146,10 @@ export default function UserTopBar({
   }, []);
 
   useEffect(() => {
-    if (user) fetchNotifications();
+    if (!user) return;
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 30_000);
+    return () => clearInterval(interval);
   }, [user, fetchNotifications]);
 
   // Close dropdowns on outside click

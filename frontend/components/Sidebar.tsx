@@ -21,12 +21,16 @@ function UserSidebar() {
   const [unread, setUnread] = useState(0);
 
   useEffect(() => {
-    notificationApi
-      .getUnreadCount()
-      .then((res) => setUnread(res.data.data ?? 0))
-      .catch(() => {
-        /* ignore */
-      });
+    const fetch = () =>
+      notificationApi
+        .getUnreadCount()
+        .then((res) => setUnread(res.data.data ?? 0))
+        .catch(() => {
+          /* ignore */
+        });
+    fetch();
+    const interval = setInterval(fetch, 30_000);
+    return () => clearInterval(interval);
   }, []);
 
   const navItems: NavItem[] = [

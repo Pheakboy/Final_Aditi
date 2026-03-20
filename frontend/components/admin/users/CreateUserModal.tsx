@@ -23,6 +23,10 @@ export default function CreateUserModal({
   onSubmit,
   onClose,
 }: CreateUserModalProps) {
+  function copyPassword() {
+    navigator.clipboard.writeText(tempPassword).catch(() => {});
+  }
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md mx-4">
@@ -55,9 +59,37 @@ export default function CreateUserModal({
         )}
 
         {tempPassword && (
-          <div className="bg-green-50 border border-green-200 text-green-800 px-3 py-2 rounded-lg text-sm mb-4">
-            User created! Temporary password:{" "}
-            <span className="font-mono font-bold">{tempPassword}</span>
+          <div className="bg-green-50 border border-green-200 text-green-800 px-3 py-3 rounded-lg text-sm mb-4">
+            <p className="font-semibold mb-2">User created successfully!</p>
+            <p className="text-xs text-green-700 mb-2">
+              Share this temporary password with the user — it won&apos;t be
+              shown again.
+            </p>
+            <div className="flex items-center gap-2 bg-white border border-green-200 rounded-lg px-3 py-2">
+              <span className="font-mono font-bold flex-1 select-all">
+                {tempPassword}
+              </span>
+              <button
+                type="button"
+                onClick={copyPassword}
+                title="Copy to clipboard"
+                className="text-green-600 hover:text-green-800 transition-colors shrink-0"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                  />
+                </svg>
+              </button>
+            </div>
           </div>
         )}
 

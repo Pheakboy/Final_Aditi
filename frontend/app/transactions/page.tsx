@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../context/AuthContext";
 import UserLayout from "../../components/UserLayout";
@@ -56,7 +56,7 @@ export default function TransactionsPage() {
     if (!isLoading && !user) router.push("/login");
   }, [user, isLoading, router]);
 
-  const fetchTransactions = async () => {
+  const fetchTransactions = useCallback(async () => {
     setDataLoading(true);
     try {
       const params: Record<string, string> = {};
@@ -71,11 +71,11 @@ export default function TransactionsPage() {
     } finally {
       setDataLoading(false);
     }
-  };
+  }, [typeFilter, dateFrom, dateTo]);
 
   useEffect(() => {
     if (user) fetchTransactions();
-  }, [user, typeFilter, dateFrom, dateTo]);
+  }, [user, fetchTransactions]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -306,76 +306,91 @@ export default function TransactionsPage() {
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8">
-          {[
-            {
-              label: "Total Income",
-              value: formatCurrency(totalIncome),
-              color: "text-emerald-600",
-              iconBg: "gradient-emerald",
-              arrow: "up",
-            },
-            {
-              label: "Total Expenses",
-              value: formatCurrency(totalExpense),
-              color: "text-red-500",
-              iconBg: "gradient-rose",
-              arrow: "down",
-            },
-            {
-              label: "Net Balance",
-              value: formatCurrency(netBalance),
-              color: netBalance >= 0 ? "text-sky-600" : "text-red-500",
-              iconBg: "gradient-sky",
-              arrow: "both",
-            },
-          ].map((card) => (
-            <div
-              key={card.label}
-              className="bg-white rounded-2xl card-shadow p-5 flex items-start gap-4"
-            >
-              <div
-                className={`${card.iconBg} w-10 h-10 rounded-xl flex items-center justify-center shrink-0`}
-              >
-                <svg
-                  className="w-5 h-5 text-white"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
+          {dataLoading
+            ? Array.from({ length: 3 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="bg-white rounded-2xl card-shadow p-5 flex items-start gap-4 animate-pulse"
                 >
-                  {card.arrow === "up" && (
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M7 11l5-5m0 0l5 5m-5-5v12"
-                    />
-                  )}
-                  {card.arrow === "down" && (
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M17 13l-5 5m0 0l-5-5m5 5V6"
-                    />
-                  )}
-                  {card.arrow === "both" && (
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
-                    />
-                  )}
-                </svg>
-              </div>
-              <div>
-                <p className="text-xs text-slate-500 mb-0.5">{card.label}</p>
-                <p className={`text-xl font-bold ${card.color}`}>
-                  {card.value}
-                </p>
-              </div>
-            </div>
-          ))}
+                  <div className="w-10 h-10 bg-slate-200 rounded-xl shrink-0"></div>
+                  <div className="space-y-2 flex-1">
+                    <div className="h-3 bg-slate-200 rounded w-24"></div>
+                    <div className="h-6 bg-slate-200 rounded w-28"></div>
+                  </div>
+                </div>
+              ))
+            : [
+                {
+                  label: "Total Income",
+                  value: formatCurrency(totalIncome),
+                  color: "text-emerald-600",
+                  iconBg: "gradient-emerald",
+                  arrow: "up",
+                },
+                {
+                  label: "Total Expenses",
+                  value: formatCurrency(totalExpense),
+                  color: "text-red-500",
+                  iconBg: "gradient-rose",
+                  arrow: "down",
+                },
+                {
+                  label: "Net Balance",
+                  value: formatCurrency(netBalance),
+                  color: netBalance >= 0 ? "text-sky-600" : "text-red-500",
+                  iconBg: "gradient-sky",
+                  arrow: "both",
+                },
+              ].map((card) => (
+                <div
+                  key={card.label}
+                  className="bg-white rounded-2xl card-shadow p-5 flex items-start gap-4"
+                >
+                  <div
+                    className={`${card.iconBg} w-10 h-10 rounded-xl flex items-center justify-center shrink-0`}
+                  >
+                    <svg
+                      className="w-5 h-5 text-white"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      {card.arrow === "up" && (
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M7 11l5-5m0 0l5 5m-5-5v12"
+                        />
+                      )}
+                      {card.arrow === "down" && (
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M17 13l-5 5m0 0l-5-5m5 5V6"
+                        />
+                      )}
+                      {card.arrow === "both" && (
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+                        />
+                      )}
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500 mb-0.5">
+                      {card.label}
+                    </p>
+                    <p className={`text-xl font-bold ${card.color}`}>
+                      {card.value}
+                    </p>
+                  </div>
+                </div>
+              ))}
         </div>
 
         {/* Add Transaction Form */}

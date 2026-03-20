@@ -4,10 +4,12 @@ import { formatCurrency, formatDate } from "../../utils/format";
 
 interface RecentTransactionsProps {
   transactions: Transaction[];
+  isLoading?: boolean;
 }
 
 export default function RecentTransactions({
   transactions,
+  isLoading = false,
 }: RecentTransactionsProps) {
   return (
     <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 transition-all hover:shadow-md">
@@ -23,7 +25,20 @@ export default function RecentTransactions({
         </Link>
       </div>
 
-      {transactions.length === 0 ? (
+      {isLoading ? (
+        <div className="space-y-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-3 py-1 animate-pulse">
+              <div className="w-8 h-8 bg-slate-200 rounded-full shrink-0"></div>
+              <div className="flex-1 space-y-1.5">
+                <div className="h-3 bg-slate-200 rounded w-40"></div>
+                <div className="h-2.5 bg-slate-200 rounded w-24"></div>
+              </div>
+              <div className="h-3 bg-slate-200 rounded w-16 shrink-0"></div>
+            </div>
+          ))}
+        </div>
+      ) : transactions.length === 0 ? (
         <div className="text-center py-8">
           <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
             <svg

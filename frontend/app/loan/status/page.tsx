@@ -17,7 +17,7 @@ export default function LoanStatusPage() {
   const [dataLoading, setDataLoading] = useState(false);
   const [dataError, setDataError] = useState("");
   const [filter, setFilter] = useState<
-    "ALL" | "PENDING" | "APPROVED" | "REJECTED"
+    "ALL" | "PENDING" | "APPROVED" | "ACTIVE" | "REJECTED" | "COMPLETED"
   >("ALL");
 
   useEffect(() => {
@@ -40,7 +40,7 @@ export default function LoanStatusPage() {
   const filteredLoans =
     filter === "ALL" ? loans : loans.filter((l) => l.status === filter);
 
-  const statusConfig = {
+  const statusConfig: Record<string, { bg: string; badge: string }> = {
     PENDING: {
       bg: "bg-amber-50 border-amber-200 text-amber-700",
       badge: "bg-amber-100 text-amber-700",
@@ -49,9 +49,17 @@ export default function LoanStatusPage() {
       bg: "bg-emerald-50 border-emerald-200 text-emerald-700",
       badge: "bg-emerald-100 text-emerald-700",
     },
+    ACTIVE: {
+      bg: "bg-teal-50 border-teal-200 text-teal-700",
+      badge: "bg-teal-100 text-teal-700",
+    },
     REJECTED: {
       bg: "bg-red-50 border-red-200 text-red-700",
       badge: "bg-red-100 text-red-700",
+    },
+    COMPLETED: {
+      bg: "bg-blue-50 border-blue-200 text-blue-700",
+      badge: "bg-blue-100 text-blue-700",
     },
   };
 
@@ -99,44 +107,101 @@ export default function LoanStatusPage() {
 
         {/* Summary Cards */}
         <div className="grid grid-cols-3 gap-5 mb-8">
-          {(["PENDING", "APPROVED", "REJECTED"] as const).map((status) => {
-            const count = loans.filter((l) => l.status === status).length;
-            const cfg = statusConfig[status];
-            return (
-              <div key={status} className={`border rounded-2xl p-5 ${cfg.bg}`}>
-                <p className="text-xs font-semibold uppercase tracking-wide mb-1">
-                  {status}
-                </p>
-                <p className="text-3xl font-bold">{count}</p>
-                <p className="text-xs mt-1 opacity-70">
-                  application{count !== 1 ? "s" : ""}
-                </p>
-              </div>
-            );
-          })}
+          {dataLoading
+            ? Array.from({ length: 3 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="border border-slate-200 rounded-2xl p-5 bg-white animate-pulse"
+                >
+                  <div className="h-3 bg-slate-200 rounded w-16 mb-2"></div>
+                  <div className="h-8 bg-slate-200 rounded w-10 mb-2"></div>
+                  <div className="h-3 bg-slate-200 rounded w-20"></div>
+                </div>
+              ))
+            : (
+                [
+                  "PENDING",
+                  "APPROVED",
+                  "ACTIVE",
+                  "REJECTED",
+                  "COMPLETED",
+                ] as const
+              ).map((status) => {
+                const count = loans.filter((l) => l.status === status).length;
+                const cfg = statusConfig[status];
+                return (
+                  <div
+                    key={status}
+                    className={`border rounded-2xl p-5 ${cfg.bg}`}
+                  >
+                    <p className="text-xs font-semibold uppercase tracking-wide mb-1">
+                      {status}
+                    </p>
+                    <p className="text-3xl font-bold">{count}</p>
+                    <p className="text-xs mt-1 opacity-70">
+                      application{count !== 1 ? "s" : ""}
+                    </p>
+                  </div>
+                );
+              })}
         </div>
 
         {/* Filter Tabs */}
-        <div className="flex gap-2 mb-6">
-          {(["ALL", "PENDING", "APPROVED", "REJECTED"] as const).map((f) => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`px-4 py-2 text-sm font-medium rounded-xl transition-all ${filter === f ? "gradient-teal text-white shadow-sm" : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"}`}
-            >
-              {f} (
-              {f === "ALL"
-                ? loans.length
-                : loans.filter((l) => l.status === f).length}
-              )
-            </button>
-          ))}
-        </div>
+        {dataLoading ? (
+          <div className="flex gap-2 mb-6 animate-pulse">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="h-9 bg-slate-200 rounded-xl w-24"></div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex gap-2 mb-6">
+            {(
+              [
+                "ALL",
+                "PENDING",
+                "APPROVED",
+                "ACTIVE",
+                "REJECTED",
+                "COMPLETED",
+              ] as const
+            ).map((f) => (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className={`px-4 py-2 text-sm font-medium rounded-xl transition-all ${filter === f ? "gradient-teal text-white shadow-sm" : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"}`}
+              >
+                {f} (
+                {f === "ALL"
+                  ? loans.length
+                  : loans.filter((l) => l.status === f).length}
+                )
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Loans */}
         {dataLoading ? (
-          <div className="flex justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-2 border-teal-500 border-t-transparent" />
+          <div className="space-y-4">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div
+                key={i}
+                className="bg-white rounded-2xl border border-slate-200 p-6 animate-pulse"
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div className="space-y-2">
+                    <div className="h-4 bg-slate-200 rounded w-40"></div>
+                    <div className="h-3 bg-slate-200 rounded w-24"></div>
+                  </div>
+                  <div className="h-6 bg-slate-200 rounded-full w-20"></div>
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="h-3 bg-slate-200 rounded w-28"></div>
+                  <div className="h-3 bg-slate-200 rounded w-20"></div>
+                  <div className="h-3 bg-slate-200 rounded w-24"></div>
+                </div>
+              </div>
+            ))}
           </div>
         ) : filteredLoans.length === 0 ? (
           <div className="bg-white rounded-2xl card-shadow p-12 text-center">
@@ -181,7 +246,7 @@ export default function LoanStatusPage() {
                         {formatCurrency(loan.loanAmount)}
                       </p>
                       <span
-                        className={`text-xs font-semibold px-2.5 py-1 rounded-full ${statusConfig[loan.status].badge}`}
+                        className={`text-xs font-semibold px-2.5 py-1 rounded-full ${(statusConfig[loan.status] ?? statusConfig["PENDING"]).badge}`}
                       >
                         {loan.status}
                       </span>

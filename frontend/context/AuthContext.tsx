@@ -32,8 +32,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const storedToken = localStorage.getItem("accessToken");
     const storedUser = localStorage.getItem("user");
     if (storedToken && storedUser) {
-      setToken(storedToken);
-      setUser(JSON.parse(storedUser));
+      try {
+        setToken(storedToken);
+        setUser(JSON.parse(storedUser));
+      } catch {
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("user");
+      }
     }
     setIsLoading(false);
 
@@ -43,7 +48,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setToken(e.newValue);
       }
       if (e.key === "user") {
-        setUser(e.newValue ? JSON.parse(e.newValue) : null);
+        try {
+          setUser(e.newValue ? JSON.parse(e.newValue) : null);
+        } catch {
+          setUser(null);
+        }
       }
     };
     window.addEventListener("storage", handleStorage);
