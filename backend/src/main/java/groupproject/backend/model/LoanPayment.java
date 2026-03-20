@@ -7,7 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.UUID;
 
 @Data
@@ -26,18 +26,16 @@ public class LoanPayment {
     @JoinColumn(name = "installment_id", nullable = false)
     private LoanInstallment installment;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    @Column(name = "account_id")
+    private UUID accountId;
 
-    @Column(nullable = false, precision = 19, scale = 4)
+    @Column(nullable = false)
     private BigDecimal amount;
 
     @Column(name = "payment_date", nullable = false)
-    private LocalDateTime paymentDate;
+    private LocalDate paymentDate;
 
-    /** SUCCESS | FAILED */
     @Column(nullable = false)
     @Builder.Default
-    private String status = "SUCCESS";
+    private String status = "COMPLETED";
 }
