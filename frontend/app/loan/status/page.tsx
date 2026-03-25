@@ -122,11 +122,22 @@ export default function LoanStatusPage() {
                   <div className="h-3 bg-slate-200 rounded w-20"></div>
                 </div>
               ))
-            : (["PENDING", "APPROVED", "ACTIVE", "REJECTED", "COMPLETED"] as const).map((status) => {
+            : (
+                [
+                  "PENDING",
+                  "APPROVED",
+                  "ACTIVE",
+                  "REJECTED",
+                  "COMPLETED",
+                ] as const
+              ).map((status) => {
                 const count = loans.filter((l) => l.status === status).length;
                 const cfg = statusConfig[status];
                 return (
-                  <div key={status} className={`border rounded-2xl p-5 ${cfg.bg}`}>
+                  <div
+                    key={status}
+                    className={`border rounded-2xl p-5 ${cfg.bg}`}
+                  >
                     <p className="text-xs font-semibold uppercase tracking-wide mb-1">
                       {status}
                     </p>
@@ -148,7 +159,16 @@ export default function LoanStatusPage() {
           </div>
         ) : (
           <div className="flex flex-wrap gap-2 mb-6">
-            {(["ALL", "PENDING", "APPROVED", "ACTIVE", "REJECTED", "COMPLETED"] as const).map((f) => (
+            {(
+              [
+                "ALL",
+                "PENDING",
+                "APPROVED",
+                "ACTIVE",
+                "REJECTED",
+                "COMPLETED",
+              ] as const
+            ).map((f) => (
               <button
                 key={f}
                 onClick={() => setFilter(f)}
