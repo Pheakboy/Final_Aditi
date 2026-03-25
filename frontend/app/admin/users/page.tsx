@@ -153,7 +153,9 @@ export default function AdminUsersPage() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Users</h1>
             <p className="text-gray-500 mt-1">
-              {filteredUsers.length} of {users.length} registered users
+              {dataLoading
+                ? "Loading users…"
+                : `${filteredUsers.length} of ${users.length} registered users`}
             </p>
           </div>
           <div className="flex items-center gap-2">

@@ -233,8 +233,23 @@ export default function NotificationsPage() {
         {/* Notifications List */}
         <div className="bg-white rounded-2xl card-shadow overflow-hidden">
           {dataLoading ? (
-            <div className="flex justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-2 border-teal-500 border-t-transparent" />
+            <div className="divide-y divide-slate-50">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="flex items-start gap-4 px-6 py-4 animate-pulse"
+                >
+                  <div className="mt-1.5 w-2 h-2 rounded-full bg-slate-200 shrink-0"></div>
+                  <div className="flex-1 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <div className="h-5 bg-slate-200 rounded-full w-24"></div>
+                      <div className="h-3 bg-slate-200 rounded w-12"></div>
+                    </div>
+                    <div className="h-4 bg-slate-200 rounded w-56"></div>
+                    <div className="h-3 bg-slate-200 rounded w-80"></div>
+                  </div>
+                </div>
+              ))}
             </div>
           ) : notifications.length === 0 ? (
             <div className="p-12 text-center">

@@ -13,15 +13,18 @@ import Pagination from "../../../components/ui/Pagination";
 import LoanFilters from "../../../components/admin/LoanFilters";
 import LoanTable from "../../../components/admin/LoanTable";
 import NoteModal from "../../../components/admin/NoteModal";
+import axios from "axios";
+import { useToast } from "../../../components/ui/Toast";
 
 export default function AdminApplicantsPage() {
   const { user, isLoading, isAdmin } = useAuth();
   const router = useRouter();
+  const { showToast } = useToast();
   const [loans, setLoans] = useState<Loan[]>([]);
   const [dataLoading, setDataLoading] = useState(false);
   const [dataError, setDataError] = useState("");
   const [filter, setFilter] = useState<
-    "" | "PENDING" | "APPROVED" | "REJECTED"
+    "" | "PENDING" | "APPROVED" | "ACTIVE" | "REJECTED" | "COMPLETED"
   >("");
   const [riskFilter, setRiskFilter] = useState<"" | "LOW" | "MEDIUM" | "HIGH">(
     "",
@@ -86,9 +89,20 @@ export default function AdminApplicantsPage() {
     setProcessingId(loanId);
     try {
       await adminApi.decideLoan(loanId, { decision, note: noteText });
+      showToast(
+        decision === "APPROVED"
+          ? "Loan approved successfully"
+          : "Loan rejected",
+        decision === "APPROVED" ? "success" : "info",
+      );
       await fetchLoans(currentPage);
-    } catch {
-      setDataError("Failed to process decision. Please try again.");
+    } catch (err: unknown) {
+      const msg = axios.isAxiosError(err)
+        ? (err.response?.data?.message ??
+          "Failed to process decision. Please try again.")
+        : "Failed to process decision. Please try again.";
+      setDataError(msg);
+      await fetchLoans(currentPage);
     } finally {
       setProcessingId(null);
       setNoteModal(null);
@@ -181,9 +195,45 @@ export default function AdminApplicantsPage() {
         />
 
         {dataLoading ? (
-          <div className="flex justify-center py-12">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
-          </div>
+          viewMode === "cards" ? (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="bg-white rounded-xl border border-gray-200 p-6 animate-pulse"
+                >
+                  <div className="flex justify-between mb-4">
+                    <div className="space-y-2">
+                      <div className="h-4 bg-gray-200 rounded w-32"></div>
+                      <div className="h-3 bg-gray-200 rounded w-24"></div>
+                    </div>
+                    <div className="h-6 bg-gray-200 rounded-full w-20"></div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="h-3 bg-gray-200 rounded w-full"></div>
+                    <div className="h-3 bg-gray-200 rounded w-4/5"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+              <div className="divide-y divide-gray-100">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-4 px-6 py-4 animate-pulse"
+                  >
+                    <div className="h-3 bg-gray-200 rounded w-32"></div>
+                    <div className="h-3 bg-gray-200 rounded w-24 flex-1"></div>
+                    <div className="h-3 bg-gray-200 rounded w-20"></div>
+                    <div className="h-6 bg-gray-200 rounded-full w-16"></div>
+                    <div className="h-6 bg-gray-200 rounded w-24"></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )
         ) : loans.length === 0 ? (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
             <p className="text-gray-500">
@@ -217,6 +267,7 @@ export default function AdminApplicantsPage() {
             processingId={processingId}
             onApprove={(id) => openNoteModal(id, "APPROVED")}
             onReject={(id) => openNoteModal(id, "REJECTED")}
+            onViewDetail={(id) => router.push(`/admin/loans/${id}`)}
           />
         )}
 

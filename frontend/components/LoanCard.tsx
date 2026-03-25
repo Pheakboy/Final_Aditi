@@ -3,6 +3,7 @@
 import { Loan } from "../types";
 import RiskBadge from "./RiskBadge";
 import { formatCurrency, formatDate } from "../utils/format";
+import Link from "next/link";
 
 interface LoanCardProps {
   loan: Loan;
@@ -19,7 +20,10 @@ export default function LoanCard({
   onReject,
   isProcessing,
 }: LoanCardProps) {
-  const statusConfig = {
+  const statusConfig: Record<
+    string,
+    { border: string; badge: string; label: string }
+  > = {
     PENDING: {
       border: "border-l-amber-400",
       badge: "bg-amber-50 text-amber-700 border-amber-200",
@@ -30,24 +34,29 @@ export default function LoanCard({
       badge: "bg-emerald-50 text-emerald-700 border-emerald-200",
       label: "Approved",
     },
+    ACTIVE: {
+      border: "border-l-teal-400",
+      badge: "bg-teal-50 text-teal-700 border-teal-200",
+      label: "Active",
+    },
     REJECTED: {
       border: "border-l-red-400",
       badge: "bg-red-50 text-red-700 border-red-200",
       label: "Rejected",
     },
     ACTIVE: {
-      border: "border-l-blue-400",
-      badge: "bg-blue-50 text-blue-700 border-blue-200",
+      border: "border-l-teal-400",
+      badge: "bg-teal-50 text-teal-700 border-teal-200",
       label: "Active",
     },
     COMPLETED: {
-      border: "border-l-slate-400",
-      badge: "bg-slate-50 text-slate-600 border-slate-200",
+      border: "border-l-blue-400",
+      badge: "bg-blue-50 text-blue-700 border-blue-200",
       label: "Completed",
     },
   };
 
-  const status = statusConfig[loan.status] ?? statusConfig.PENDING;
+  const status = statusConfig[loan.status] ?? statusConfig["PENDING"];
 
   return (
     <div
@@ -173,6 +182,12 @@ export default function LoanCard({
         {/* Action buttons */}
         {loan.status === "PENDING" && (onApprove || onReject) && (
           <div className="flex gap-2 mt-4">
+            <Link
+              href={`/admin/loans/${loan.id}`}
+              className="flex-1 py-2 px-3 bg-slate-50 border border-slate-200 text-slate-600 text-sm font-bold rounded-lg hover:bg-slate-100 hover:border-slate-300 transition-colors text-center"
+            >
+              Review Detail
+            </Link>
             {onApprove && (
               <button
                 onClick={() => onApprove(loan.id)}

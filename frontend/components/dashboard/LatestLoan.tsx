@@ -9,6 +9,8 @@ interface LatestLoanProps {
 
 const STATUS_STYLES: Record<string, string> = {
   APPROVED: "bg-emerald-50 text-emerald-700",
+  ACTIVE: "bg-teal-50 text-teal-700",
+  COMPLETED: "bg-blue-50 text-blue-700",
   REJECTED: "bg-red-50 text-red-700",
   PENDING: "bg-amber-50 text-amber-700",
 };

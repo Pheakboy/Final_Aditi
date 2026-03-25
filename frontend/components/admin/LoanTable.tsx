@@ -16,9 +16,9 @@ interface LoanTableProps {
 const STATUS_COLORS: Record<string, string> = {
   PENDING: "bg-yellow-100 text-yellow-700",
   APPROVED: "bg-green-100 text-green-700",
+  ACTIVE: "bg-teal-100 text-teal-700",
   REJECTED: "bg-red-100 text-red-700",
-  ACTIVE: "bg-blue-100 text-blue-700",
-  COMPLETED: "bg-slate-100 text-slate-600",
+  COMPLETED: "bg-blue-100 text-blue-700",
 };
 
 export default function LoanTable({

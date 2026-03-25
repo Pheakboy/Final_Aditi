@@ -14,7 +14,7 @@ export default function ContactPage() {
       <LandingNavbar />
       <main className="pt-16">
         {/* Page header */}
-        <div className="relative overflow-hidden bg-gradient-to-br from-slate-50 to-emerald-50/40 py-20 text-center">
+        <div className="relative overflow-hidden bg-linear-to-br from-slate-50 to-emerald-50/40 py-20 text-center">
           <div className="pointer-events-none absolute inset-0">
             <div className="absolute left-1/3 -top-20 h-80 w-80 rounded-full bg-emerald-400/15 blur-3xl" />
             <div className="absolute right-1/4 bottom-0 h-72 w-72 rounded-full bg-sky-400/15 blur-3xl" />

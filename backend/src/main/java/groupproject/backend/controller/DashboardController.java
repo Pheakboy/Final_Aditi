@@ -66,7 +66,8 @@ public class DashboardController {
         List<Loan> userLoans = loanRepository.findByUserOrderByCreatedAtDesc(user);
         long totalLoans = userLoans.size();
         long pendingLoans = userLoans.stream().filter(l -> l.getStatus() == LoanStatus.PENDING).count();
-        long approvedLoans = userLoans.stream().filter(l -> l.getStatus() == LoanStatus.APPROVED).count();
+        long approvedLoans = userLoans.stream().filter(l -> l.getStatus() == LoanStatus.APPROVED
+                || l.getStatus() == LoanStatus.ACTIVE || l.getStatus() == LoanStatus.COMPLETED).count();
         long rejectedLoans = userLoans.stream().filter(l -> l.getStatus() == LoanStatus.REJECTED).count();
 
         // Latest risk info from most recent loan

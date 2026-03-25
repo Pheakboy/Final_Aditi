@@ -1,11 +1,7 @@
 package groupproject.backend.controller;
 
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import lombok.Data;
-
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -14,9 +10,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import java.nio.charset.StandardCharsets;
 
-import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -30,7 +24,15 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import groupproject.backend.dto.AnalyticsDTO;
@@ -60,6 +62,11 @@ import groupproject.backend.response.PagedResponse;
 import groupproject.backend.service.AuditLogService;
 import groupproject.backend.service.LoanService;
 import groupproject.backend.service.NotificationService;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import lombok.Data;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -145,19 +152,8 @@ public class AdminController {
             Authentication authentication,
             @PathVariable UUID loanId,
             @Valid @RequestBody LoanDecisionRequestDTO request) {
+        // Notification is sent inside loanService.decideLoan — no duplicate needed here.
         ApiResponse<LoanResponseDTO> result = loanService.decideLoan(authentication, loanId, request);
-        // Send notification to loan applicant
-        Loan loan = loanRepository.findById(loanId).orElse(null);
-        if (loan != null) {
-            boolean approved = "APPROVED".equalsIgnoreCase(request.getDecision());
-            String title = approved ? "Loan Approved" : "Loan Rejected";
-            String message = approved
-                    ? "Your loan application of " + loan.getLoanAmount() + " has been approved."
-                    : "Your loan application of " + loan.getLoanAmount() + " has been rejected." +
-                      (request.getNote() != null ? " Reason: " + request.getNote() : "");
-            notificationService.sendToUser(loan.getUser(), title, message,
-                    approved ? NotificationType.LOAN_APPROVED : NotificationType.LOAN_REJECTED);
-        }
         return ResponseEntity.ok(result);
     }
 
@@ -223,7 +219,8 @@ public class AdminController {
                     skipped.add(idStr);
                     continue;
                 }
-                loan.setStatus(LoanStatus.APPROVED);
+                loan.setStatus(LoanStatus.ACTIVE);
+                loan.setStartDate(java.time.LocalDate.now());
                 loan.setAdminNote(request.getNote());
                 loanRepository.save(loan);
                 LoanDecision decision = LoanDecision.builder()
@@ -231,7 +228,7 @@ public class AdminController {
                         .decision(LoanStatus.APPROVED).note(request.getNote()).build();
                 loanDecisionRepository.save(decision);
                 notificationService.sendToUser(loan.getUser(), "Loan Approved",
-                        "Your loan of " + loan.getLoanAmount() + " has been approved.", NotificationType.LOAN_APPROVED);
+                        "Your loan of " + loan.getLoanAmount() + " has been approved and is now active.", NotificationType.LOAN_APPROVED);
                 count++;
             } catch (Exception e) { skipped.add(idStr); }
         }
@@ -533,7 +530,9 @@ public class AdminController {
         long totalLoans = loanRepository.count();
         AnalyticsDTO.RiskDistribution riskDistribution = AnalyticsDTO.RiskDistribution.builder()
                 .low(lowCount).medium(mediumCount).high(highCount).total(totalLoans).build();
-        long approved = loanRepository.countByStatus(LoanStatus.APPROVED);
+        long approved = loanRepository.countByStatus(LoanStatus.APPROVED)
+                + loanRepository.countByStatus(LoanStatus.ACTIVE)
+                + loanRepository.countByStatus(LoanStatus.COMPLETED);
         long rejected = loanRepository.countByStatus(LoanStatus.REJECTED);
         long pending = loanRepository.countByStatus(LoanStatus.PENDING);
         long decided = approved + rejected;
@@ -570,7 +569,9 @@ public class AdminController {
         long totalUsers = userRepository.count();
         long totalLoans = loanRepository.count();
         long pendingLoans = loanRepository.countByStatus(LoanStatus.PENDING);
-        long approvedLoans = loanRepository.countByStatus(LoanStatus.APPROVED);
+        long approvedLoans = loanRepository.countByStatus(LoanStatus.APPROVED)
+                + loanRepository.countByStatus(LoanStatus.ACTIVE)
+                + loanRepository.countByStatus(LoanStatus.COMPLETED);
         long rejectedLoans = loanRepository.countByStatus(LoanStatus.REJECTED);
         long decided = approvedLoans + rejectedLoans;
         double approvalRate = decided > 0 ? (approvedLoans * 100.0 / decided) : 0;
@@ -578,13 +579,17 @@ public class AdminController {
         double avgRisk = loanRepository.findAll().stream()
                 .filter(l -> l.getRiskScore() != null)
                 .mapToDouble(l -> l.getRiskScore()).average().orElse(0);
-        // Total approved loan amount
-        BigDecimal totalApprovedAmount = loanRepository.findByStatusOrderByCreatedAtDesc(LoanStatus.APPROVED).stream()
-                .map(Loan::getLoanAmount).filter(java.util.Objects::nonNull)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        // New users this month
-        long newUsersThisMonth = userRepository.count(); // simplified monthly
-
+        // Total approved loan amount (APPROVED + ACTIVE + COMPLETED)
+        BigDecimal totalApprovedAmount =
+                loanRepository.findByStatusOrderByCreatedAtDesc(LoanStatus.APPROVED).stream()
+                        .map(Loan::getLoanAmount).filter(java.util.Objects::nonNull)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .add(loanRepository.findByStatusOrderByCreatedAtDesc(LoanStatus.ACTIVE).stream()
+                        .map(Loan::getLoanAmount).filter(java.util.Objects::nonNull)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add))
+                .add(loanRepository.findByStatusOrderByCreatedAtDesc(LoanStatus.COMPLETED).stream()
+                        .map(Loan::getLoanAmount).filter(java.util.Objects::nonNull)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add));
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("totalUsers", totalUsers);
         result.put("totalLoans", totalLoans);
@@ -772,11 +777,23 @@ public class AdminController {
     }
 
     private LoanResponseDTO mapLoanToDTO(Loan loan) {
+        BigDecimal monthlyPayment = null;
+        if (loan.getLoanAmount() != null && loan.getTermMonths() != null && loan.getInterestRate() != null) {
+            BigDecimal monthlyRate = loan.getInterestRate()
+                    .divide(BigDecimal.valueOf(12), 10, java.math.RoundingMode.HALF_UP);
+            BigDecimal principalPerMonth = loan.getLoanAmount()
+                    .divide(BigDecimal.valueOf(loan.getTermMonths()), 4, java.math.RoundingMode.HALF_UP);
+            BigDecimal firstInterest = loan.getLoanAmount().multiply(monthlyRate)
+                    .setScale(4, java.math.RoundingMode.HALF_UP);
+            monthlyPayment = principalPerMonth.add(firstInterest).setScale(2, java.math.RoundingMode.HALF_UP);
+        }
         return LoanResponseDTO.builder()
                 .id(loan.getId()).loanAmount(loan.getLoanAmount())
                 .monthlyIncome(loan.getMonthlyIncome()).monthlyExpense(loan.getMonthlyExpense())
                 .riskScore(loan.getRiskScore()).riskLevel(loan.getRiskLevel())
                 .status(loan.getStatus()).purpose(loan.getPurpose()).adminNote(loan.getAdminNote())
+                .interestRate(loan.getInterestRate()).termMonths(loan.getTermMonths())
+                .startDate(loan.getStartDate()).monthlyPayment(monthlyPayment)
                 .createdAt(loan.getCreatedAt()).updatedAt(loan.getUpdatedAt())
                 .applicantEmail(loan.getUser().getEmail())
                 .applicantUsername(loan.getUser().getRealUsername()).build();

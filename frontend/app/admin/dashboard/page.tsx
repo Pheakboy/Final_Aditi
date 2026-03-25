@@ -210,95 +210,123 @@ export default function AdminDashboardPage() {
 
         {/* Stat Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-          <StatCard
-            label="Total Applications"
-            value={allLoans.length}
-            iconBg="gradient-indigo"
-            icon={
-              <svg
-                className="w-7 h-7 text-blue-500"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
+          {dataLoading ? (
+            Array.from({ length: 4 }).map((_, i) => (
+              <div
+                key={i}
+                className="bg-white border border-slate-200 rounded-xl shadow-sm p-5 flex flex-col justify-between gap-4 animate-pulse"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                />
-              </svg>
-            }
-          />
-          <StatCard
-            label="Pending Review"
-            value={pendingCount}
-            valueColor="text-amber-600"
-            iconBg="gradient-amber"
-            icon={
-              <svg
-                className="w-7 h-7 text-amber-500"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-            }
-          />
-          <StatCard
-            label="Approved"
-            value={approvedCount}
-            valueColor="text-emerald-600"
-            iconBg="gradient-emerald"
-            icon={
-              <svg
-                className="w-7 h-7 text-green-500"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-            }
-          />
-          <StatCard
-            label="Rejected"
-            value={rejectedCount}
-            valueColor="text-red-500"
-            iconBg="gradient-rose"
-            icon={
-              <svg
-                className="w-7 h-7 text-rose-500"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-            }
-          />
+                <div className="flex items-start justify-between">
+                  <div className="flex-1 space-y-2">
+                    <div className="h-3 bg-slate-200 rounded w-24"></div>
+                    <div className="h-8 bg-slate-200 rounded w-20"></div>
+                  </div>
+                  <div className="w-10 h-10 bg-slate-200 rounded-lg shrink-0"></div>
+                </div>
+              </div>
+            ))
+          ) : (
+            <>
+              <StatCard
+                label="Total Applications"
+                value={allLoans.length}
+                iconBg="gradient-indigo"
+                icon={
+                  <svg
+                    className="w-7 h-7 text-blue-500"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                    />
+                  </svg>
+                }
+              />
+              <StatCard
+                label="Pending Review"
+                value={pendingCount}
+                valueColor="text-amber-600"
+                iconBg="gradient-amber"
+                icon={
+                  <svg
+                    className="w-7 h-7 text-amber-500"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                }
+              />
+              <StatCard
+                label="Approved"
+                value={approvedCount}
+                valueColor="text-emerald-600"
+                iconBg="gradient-emerald"
+                icon={
+                  <svg
+                    className="w-7 h-7 text-green-500"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                }
+              />
+              <StatCard
+                label="Rejected"
+                value={rejectedCount}
+                valueColor="text-red-500"
+                iconBg="gradient-rose"
+                icon={
+                  <svg
+                    className="w-7 h-7 text-rose-500"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                }
+              />
+            </>
+          )}
         </div>
 
         {/* Charts */}
         {dataLoading ? (
-          <div className="flex items-center justify-center h-64 text-slate-400 text-sm font-medium">
-            Loading charts…
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 animate-pulse">
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+              <div className="h-4 bg-slate-200 rounded w-48 mb-2"></div>
+              <div className="h-3 bg-slate-200 rounded w-32 mb-6"></div>
+              <div className="h-60 bg-slate-100 rounded-xl"></div>
+            </div>
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+              <div className="h-4 bg-slate-200 rounded w-40 mb-2"></div>
+              <div className="h-3 bg-slate-200 rounded w-28 mb-6"></div>
+              <div className="h-60 bg-slate-100 rounded-xl"></div>
+            </div>
           </div>
         ) : (
           <div

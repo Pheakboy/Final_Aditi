@@ -31,7 +31,7 @@ export interface Loan {
   monthlyExpense: number;
   riskScore?: number;
   riskLevel?: "LOW" | "MEDIUM" | "HIGH";
-  status: "PENDING" | "APPROVED" | "REJECTED" | "ACTIVE" | "COMPLETED";
+  status: "PENDING" | "APPROVED" | "ACTIVE" | "REJECTED" | "COMPLETED";
   purpose?: string;
   adminNote?: string;
   interestRate?: number;

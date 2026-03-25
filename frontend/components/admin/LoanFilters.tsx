@@ -1,9 +1,11 @@
 interface LoanFiltersProps {
-  filter: "" | "PENDING" | "APPROVED" | "REJECTED";
+  filter: "" | "PENDING" | "APPROVED" | "ACTIVE" | "REJECTED" | "COMPLETED";
   riskFilter: "" | "LOW" | "MEDIUM" | "HIGH";
   dateFrom: string;
   dateTo: string;
-  onFilterChange: (value: "" | "PENDING" | "APPROVED" | "REJECTED") => void;
+  onFilterChange: (
+    value: "" | "PENDING" | "APPROVED" | "ACTIVE" | "REJECTED" | "COMPLETED",
+  ) => void;
   onRiskFilterChange: (value: "" | "LOW" | "MEDIUM" | "HIGH") => void;
   onDateFromChange: (value: string) => void;
   onDateToChange: (value: string) => void;
@@ -28,7 +30,16 @@ export default function LoanFilters({
       <div className="flex flex-wrap gap-4 items-center">
         <div className="flex gap-2 items-center">
           <span className="text-sm text-gray-500 font-medium">Status:</span>
-          {(["", "PENDING", "APPROVED", "REJECTED"] as const).map((f) => (
+          {(
+            [
+              "PENDING",
+              "APPROVED",
+              "ACTIVE",
+              "REJECTED",
+              "COMPLETED",
+              "",
+            ] as const
+          ).map((f) => (
             <button
               key={f || "ALL"}
               onClick={() => onFilterChange(f)}
