@@ -17,7 +17,7 @@ export default function LoanStatusPage() {
   const [dataLoading, setDataLoading] = useState(false);
   const [dataError, setDataError] = useState("");
   const [filter, setFilter] = useState<
-    "ALL" | "PENDING" | "APPROVED" | "REJECTED"
+    "ALL" | "PENDING" | "APPROVED" | "REJECTED" | "ACTIVE" | "COMPLETED"
   >("ALL");
 
   useEffect(() => {
@@ -40,7 +40,7 @@ export default function LoanStatusPage() {
   const filteredLoans =
     filter === "ALL" ? loans : loans.filter((l) => l.status === filter);
 
-  const statusConfig = {
+  const statusConfig: Record<string, { bg: string; badge: string }> = {
     PENDING: {
       bg: "bg-amber-50 border-amber-200 text-amber-700",
       badge: "bg-amber-100 text-amber-700",
@@ -52,6 +52,14 @@ export default function LoanStatusPage() {
     REJECTED: {
       bg: "bg-red-50 border-red-200 text-red-700",
       badge: "bg-red-100 text-red-700",
+    },
+    ACTIVE: {
+      bg: "bg-blue-50 border-blue-200 text-blue-700",
+      badge: "bg-blue-100 text-blue-700",
+    },
+    COMPLETED: {
+      bg: "bg-slate-50 border-slate-200 text-slate-600",
+      badge: "bg-slate-100 text-slate-600",
     },
   };
 
@@ -98,8 +106,10 @@ export default function LoanStatusPage() {
         )}
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-3 gap-5 mb-8">
-          {(["PENDING", "APPROVED", "REJECTED"] as const).map((status) => {
+        <div className="grid grid-cols-3 sm:grid-cols-5 gap-4 mb-8">
+          {(
+            ["PENDING", "APPROVED", "REJECTED", "ACTIVE", "COMPLETED"] as const
+          ).map((status) => {
             const count = loans.filter((l) => l.status === status).length;
             const cfg = statusConfig[status];
             return (
@@ -117,8 +127,17 @@ export default function LoanStatusPage() {
         </div>
 
         {/* Filter Tabs */}
-        <div className="flex gap-2 mb-6">
-          {(["ALL", "PENDING", "APPROVED", "REJECTED"] as const).map((f) => (
+        <div className="flex flex-wrap gap-2 mb-6">
+          {(
+            [
+              "ALL",
+              "PENDING",
+              "APPROVED",
+              "REJECTED",
+              "ACTIVE",
+              "COMPLETED",
+            ] as const
+          ).map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}

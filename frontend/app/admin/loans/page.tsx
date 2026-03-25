@@ -179,7 +179,7 @@ export default function AdminLoansPage() {
                   const url = window.URL.createObjectURL(new Blob([res.data]));
                   const a = document.createElement("a");
                   a.href = url;
-                  a.download = "loans.c\sv";
+                  a.download = "loans.csv";
                   a.click();
                   window.URL.revokeObjectURL(url);
                 } catch {

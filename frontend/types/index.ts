@@ -31,13 +31,28 @@ export interface Loan {
   monthlyExpense: number;
   riskScore?: number;
   riskLevel?: "LOW" | "MEDIUM" | "HIGH";
-  status: "PENDING" | "APPROVED" | "REJECTED";
+  status: "PENDING" | "APPROVED" | "REJECTED" | "ACTIVE" | "COMPLETED";
   purpose?: string;
   adminNote?: string;
+  interestRate?: number;
+  termMonths?: number;
+  startDate?: string;
+  monthlyPayment?: number;
   createdAt: string;
   updatedAt: string;
   applicantEmail?: string;
   applicantUsername?: string;
+}
+
+export interface LoanInstallment {
+  id: string;
+  installmentNumber: number;
+  dueDate: string;
+  principalAmount: number;
+  interestAmount: number;
+  totalAmount: number;
+  status: "PENDING" | "PAID" | "OVERDUE";
+  paidAt?: string;
 }
 
 export interface ApiResponse<T> {
@@ -98,7 +113,13 @@ export interface Notification {
   id: string;
   title: string;
   message: string;
-  type: "LOAN_APPROVED" | "LOAN_REJECTED" | "BROADCAST" | "GENERAL";
+  type:
+    | "LOAN_APPROVED"
+    | "LOAN_REJECTED"
+    | "LOAN_REMINDER"
+    | "INSTALLMENT_PAID"
+    | "BROADCAST"
+    | "GENERAL";
   isRead: boolean;
   createdAt: string;
 }

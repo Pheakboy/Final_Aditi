@@ -1,21 +1,29 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../context/AuthContext";
 import UserLayout from "../../components/UserLayout";
 import { notificationApi } from "../../services/api";
+import { Client } from "@stomp/stompjs";
+import SockJS from "sockjs-client";
 
 interface Notification {
   id: string;
   title: string;
   message: string;
-  type: "LOAN_APPROVED" | "LOAN_REJECTED" | "BROADCAST" | "GENERAL";
+  type:
+    | "LOAN_APPROVED"
+    | "LOAN_REJECTED"
+    | "LOAN_REMINDER"
+    | "INSTALLMENT_PAID"
+    | "BROADCAST"
+    | "GENERAL";
   isRead: boolean;
   createdAt: string;
 }
 
-const typeConfig = {
+const typeConfig: Record<string, { label: string; color: string }> = {
   LOAN_APPROVED: {
     label: "Loan Approved",
     color: "bg-emerald-100 text-emerald-700 border-emerald-200",
@@ -23,6 +31,14 @@ const typeConfig = {
   LOAN_REJECTED: {
     label: "Loan Rejected",
     color: "bg-red-100 text-red-700 border-red-200",
+  },
+  LOAN_REMINDER: {
+    label: "Reminder",
+    color: "bg-amber-100 text-amber-700 border-amber-200",
+  },
+  INSTALLMENT_PAID: {
+    label: "Payment Confirmed",
+    color: "bg-teal-100 text-teal-700 border-teal-200",
   },
   BROADCAST: {
     label: "Broadcast",
@@ -42,6 +58,8 @@ export default function NotificationsPage() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [markingAll, setMarkingAll] = useState(false);
   const [now, setNow] = useState(0);
+  const [wsConnected, setWsConnected] = useState(false);
+  const stompClientRef = useRef<Client | null>(null);
 
   // Update "now" after mount and every minute so relative times stay current.
   // Keeping Date.now() inside useEffect avoids server/client render mismatches.
@@ -74,6 +92,51 @@ export default function NotificationsPage() {
   useEffect(() => {
     if (user) fetchNotifications();
   }, [user, fetchNotifications]);
+
+  // ─── WebSocket real-time notifications ───────────────────────────────────────
+  useEffect(() => {
+    if (!user) return;
+    const token =
+      typeof window !== "undefined"
+        ? localStorage.getItem("accessToken")
+        : null;
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+
+    const client = new Client({
+      webSocketFactory: () => new SockJS(`${apiUrl}/ws`),
+      connectHeaders: token ? { Authorization: `Bearer ${token}` } : {},
+      reconnectDelay: 5000,
+      onConnect: () => {
+        setWsConnected(true);
+        // Subscribe to user-specific topic — backend sends to /topic/notifications/{userId}
+        // We use a wildcard approach since we don't store userId here separately;
+        // instead subscribe broadly and match on the notification itself.
+        client.subscribe(
+          `/topic/notifications/${(user as { id?: string | number }).id ?? "me"}`,
+          (frame) => {
+            try {
+              const newNotif: Notification = JSON.parse(frame.body);
+              setNotifications((prev) => [newNotif, ...prev]);
+              setUnreadCount((c) => c + 1);
+            } catch {
+              // malformed message — ignore
+            }
+          },
+        );
+      },
+      onDisconnect: () => setWsConnected(false),
+      onStompError: () => setWsConnected(false),
+    });
+
+    client.activate();
+    stompClientRef.current = client;
+
+    return () => {
+      client.deactivate();
+      stompClientRef.current = null;
+      setWsConnected(false);
+    };
+  }, [user]);
 
   const handleMarkRead = async (id: string) => {
     try {
@@ -128,8 +191,22 @@ export default function NotificationsPage() {
     <UserLayout title="Notifications" subtitle={notifSubtitle}>
       <div className="p-6 lg:p-8">
         {/* Action bar */}
-        {unreadCount > 0 && (
-          <div className="flex justify-end mb-6 animate-fade-in">
+        <div className="flex items-center justify-between mb-6 animate-fade-in">
+          <div className="flex items-center gap-2">
+            <span
+              className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border ${
+                wsConnected
+                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                  : "bg-slate-50 text-slate-500 border-slate-200"
+              }`}
+            >
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${wsConnected ? "bg-emerald-500 animate-pulse" : "bg-slate-400"}`}
+              />
+              {wsConnected ? "Live" : "Connecting…"}
+            </span>
+          </div>
+          {unreadCount > 0 && (
             <button
               onClick={handleMarkAllRead}
               disabled={markingAll}
@@ -150,8 +227,8 @@ export default function NotificationsPage() {
               </svg>
               {markingAll ? "Marking..." : "Mark all as read"}
             </button>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Notifications List */}
         <div className="bg-white rounded-2xl card-shadow overflow-hidden">

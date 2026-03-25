@@ -127,6 +127,10 @@ export const loanApi = {
   }) => api.post("/api/loans/apply", data),
   getMyLoans: () => api.get("/api/loans/my"),
   getLoanById: (id: string) => api.get(`/api/users/me/loans/${id}`),
+  getInstallments: (loanId: string) =>
+    api.get(`/api/loans/${loanId}/installments`),
+  payInstallment: (installmentId: string) =>
+    api.post("/api/loans/installment/pay", { installmentId }),
 };
 
 // ─── Notification API (User) ─────────────────────────────────────────────────

@@ -35,9 +35,19 @@ export default function LoanCard({
       badge: "bg-red-50 text-red-700 border-red-200",
       label: "Rejected",
     },
+    ACTIVE: {
+      border: "border-l-blue-400",
+      badge: "bg-blue-50 text-blue-700 border-blue-200",
+      label: "Active",
+    },
+    COMPLETED: {
+      border: "border-l-slate-400",
+      badge: "bg-slate-50 text-slate-600 border-slate-200",
+      label: "Completed",
+    },
   };
 
-  const status = statusConfig[loan.status];
+  const status = statusConfig[loan.status] ?? statusConfig.PENDING;
 
   return (
     <div
@@ -59,17 +69,21 @@ export default function LoanCard({
               </span>
             </div>
             {loan.purpose && (
-              <p className="text-sm font-medium text-slate-500 truncate mb-1">{loan.purpose}</p>
+              <p className="text-sm font-medium text-slate-500 truncate mb-1">
+                {loan.purpose}
+              </p>
             )}
             {showApplicant && (
               <div className="flex items-center gap-2 mt-2">
                 <div className="w-5 h-5 rounded-md bg-slate-100 flex items-center justify-center shrink-0 border border-slate-200">
                   <span className="text-slate-600 text-xs font-bold">
-                    {loan.applicantUsername ? loan.applicantUsername.charAt(0).toUpperCase() : "?"}
+                    {loan.applicantUsername
+                      ? loan.applicantUsername.charAt(0).toUpperCase()
+                      : "?"}
                   </span>
                 </div>
                 <p className="text-sm font-semibold text-slate-700 truncate">
-                  {loan.applicantUsername || 'Unknown'}
+                  {loan.applicantUsername || "Unknown"}
                   {loan.applicantEmail && (
                     <span className="text-slate-400 font-medium ml-1.5 text-xs">
                       {loan.applicantEmail}
@@ -87,13 +101,17 @@ export default function LoanCard({
         {/* Financial stats */}
         <div className="grid grid-cols-2 gap-3 mb-5">
           <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
-            <p className="text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-widest">Income</p>
+            <p className="text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-widest">
+              Income
+            </p>
             <p className="text-sm font-bold text-emerald-600">
               {formatCurrency(loan.monthlyIncome)}
             </p>
           </div>
           <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
-            <p className="text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-widest">Expense</p>
+            <p className="text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-widest">
+              Expense
+            </p>
             <p className="text-sm font-bold text-rose-500">
               {formatCurrency(loan.monthlyExpense)}
             </p>
@@ -104,27 +122,51 @@ export default function LoanCard({
         {loan.adminNote && (
           <div className="bg-amber-50 border border-amber-200/60 rounded-lg p-3 mb-5">
             <div className="flex items-center gap-1.5 mb-1">
-              <svg className="w-3.5 h-3.5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <svg
+                className="w-3.5 h-3.5 text-amber-500"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
               </svg>
               <p className="text-[10px] font-bold text-amber-700 uppercase tracking-widest">
                 Admin Note
               </p>
             </div>
-            <p className="text-sm font-medium text-amber-900 leading-relaxed">{loan.adminNote}</p>
+            <p className="text-sm font-medium text-amber-900 leading-relaxed">
+              {loan.adminNote}
+            </p>
           </div>
         )}
 
         {/* Footer */}
         <div className="flex items-center justify-between text-[11px] font-medium text-slate-400 border-t border-slate-100 pt-3 mt-auto">
           <span className="flex items-center gap-1.5">
-            <svg className="w-3.5 h-3.5 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            <svg
+              className="w-3.5 h-3.5 text-slate-300"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+              />
             </svg>
             {formatDate(loan.createdAt)}
           </span>
           {loan.updatedAt !== loan.createdAt && (
-            <span className="text-slate-400">Updated {formatDate(loan.updatedAt)}</span>
+            <span className="text-slate-400">
+              Updated {formatDate(loan.updatedAt)}
+            </span>
           )}
         </div>
 
