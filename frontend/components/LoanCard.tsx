@@ -44,11 +44,6 @@ export default function LoanCard({
       badge: "bg-red-50 text-red-700 border-red-200",
       label: "Rejected",
     },
-    ACTIVE: {
-      border: "border-l-teal-400",
-      badge: "bg-teal-50 text-teal-700 border-teal-200",
-      label: "Active",
-    },
     COMPLETED: {
       border: "border-l-blue-400",
       badge: "bg-blue-50 text-blue-700 border-blue-200",
