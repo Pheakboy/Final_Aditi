@@ -14,7 +14,7 @@ export default function LoanStatusPage() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
   const [loans, setLoans] = useState<Loan[]>([]);
-  const [dataLoading, setDataLoading] = useState(false);
+  const [dataLoading, setDataLoading] = useState(true);
   const [dataError, setDataError] = useState("");
   const [filter, setFilter] = useState<
     "ALL" | "PENDING" | "APPROVED" | "ACTIVE" | "REJECTED" | "COMPLETED"
@@ -26,7 +26,6 @@ export default function LoanStatusPage() {
 
   useEffect(() => {
     if (user) {
-      setDataLoading(true);
       loanApi
         .getMyLoans()
         .then((res) => setLoans(res.data.data || []))
@@ -56,10 +55,6 @@ export default function LoanStatusPage() {
     REJECTED: {
       bg: "bg-red-50 border-red-200 text-red-700",
       badge: "bg-red-100 text-red-700",
-    },
-    ACTIVE: {
-      bg: "bg-teal-50 border-teal-200 text-teal-700",
-      badge: "bg-teal-100 text-teal-700",
     },
     COMPLETED: {
       bg: "bg-blue-50 border-blue-200 text-blue-700",

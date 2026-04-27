@@ -3,6 +3,7 @@ package groupproject.backend.controller;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -43,6 +44,7 @@ import groupproject.backend.dto.UserProfileDTO;
 import groupproject.backend.model.AuditLog;
 import groupproject.backend.model.Loan;
 import groupproject.backend.model.LoanDecision;
+import groupproject.backend.model.LoanInstallment;
 import groupproject.backend.model.Role;
 import groupproject.backend.model.Transaction;
 import groupproject.backend.model.User;
@@ -52,8 +54,11 @@ import groupproject.backend.model.enums.RiskLevel;
 import groupproject.backend.model.enums.TransactionType;
 import groupproject.backend.repository.AuditLogRepository;
 import groupproject.backend.repository.LoanDecisionRepository;
+import groupproject.backend.repository.LoanInstallmentRepository;
+import groupproject.backend.repository.LoanPaymentRepository;
 import groupproject.backend.repository.LoanRepository;
 import groupproject.backend.repository.NotificationRepository;
+import groupproject.backend.repository.RefreshTokenRepository;
 import groupproject.backend.repository.RoleRepository;
 import groupproject.backend.repository.TransactionRepository;
 import groupproject.backend.repository.UserRepository;
@@ -87,6 +92,9 @@ public class AdminController {
     private final NotificationRepository notificationRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
+    private final LoanInstallmentRepository loanInstallmentRepository;
+    private final LoanPaymentRepository loanPaymentRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
 
     public AdminController(LoanService loanService,
                            LoanRepository loanRepository,
@@ -98,7 +106,10 @@ public class AdminController {
                            NotificationService notificationService,
                            NotificationRepository notificationRepository,
                            RoleRepository roleRepository,
-                           PasswordEncoder passwordEncoder) {
+                       PasswordEncoder passwordEncoder,
+                       LoanInstallmentRepository loanInstallmentRepository,
+                       LoanPaymentRepository loanPaymentRepository,
+                       RefreshTokenRepository refreshTokenRepository) {
         this.loanService = loanService;
         this.loanRepository = loanRepository;
         this.loanDecisionRepository = loanDecisionRepository;
@@ -110,6 +121,9 @@ public class AdminController {
         this.notificationRepository = notificationRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
+        this.loanInstallmentRepository = loanInstallmentRepository;
+        this.loanPaymentRepository = loanPaymentRepository;
+        this.refreshTokenRepository = refreshTokenRepository;
     }
 
     // ─── Loan List Endpoints ──────────────────────────────────────────────────
@@ -811,5 +825,289 @@ public class AdminController {
         if (value.contains(",") || value.contains("\"") || value.contains("\n"))
             return "\"" + value.replace("\"", "\"\"") + "\"";
         return value;
+    }
+
+    // ─── Installment Management ───────────────────────────────────────────────
+
+    @GetMapping("/installments")
+    @Transactional(readOnly = true)
+    public ResponseEntity<ApiResponse<PagedResponse<Map<String, Object>>>> getAllInstallments(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String loanId,
+            @RequestParam(required = false) String search) {
+        List<LoanInstallment> all = loanInstallmentRepository.findAll(
+                Sort.by(Sort.Direction.ASC, "dueDate"));
+        if (status != null && !status.isBlank()) {
+            final String s = status.toUpperCase();
+            all = all.stream().filter(i -> i.getStatus().equalsIgnoreCase(s)).collect(Collectors.toList());
+        }
+        if (loanId != null && !loanId.isBlank()) {
+            try {
+                UUID lid = UUID.fromString(loanId);
+                all = all.stream().filter(i -> i.getLoan().getId().equals(lid)).collect(Collectors.toList());
+            } catch (IllegalArgumentException ignored) {}
+        }
+        if (search != null && !search.isBlank()) {
+            final String q = search.toLowerCase();
+            all = all.stream().filter(i -> {
+                groupproject.backend.model.User u = i.getLoan().getUser();
+                return (u.getUsername() != null && u.getUsername().toLowerCase().contains(q))
+                        || (u.getEmail() != null && u.getEmail().toLowerCase().contains(q))
+                        || i.getLoan().getId().toString().contains(q);
+            }).collect(Collectors.toList());
+        }
+        int total = all.size();
+        int fromIdx = page * size;
+        int toIdx = Math.min(fromIdx + size, total);
+        List<Map<String, Object>> content = (fromIdx >= total) ? List.of()
+                : all.subList(fromIdx, toIdx).stream().map(this::mapInstallmentToMap).collect(Collectors.toList());
+        PagedResponse<Map<String, Object>> paged = PagedResponse.<Map<String, Object>>builder()
+                .content(content).page(page).size(size).totalElements(total)
+                .totalPages(size > 0 ? (total + size - 1) / size : 0).last(toIdx >= total).build();
+        return ResponseEntity.ok(ApiResponse.success(paged, "Installments retrieved"));
+    }
+
+    @GetMapping("/loans/{loanId}/installments")
+    @Transactional(readOnly = true)
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getLoanInstallments(
+            @PathVariable UUID loanId) {
+        Loan loan = loanRepository.findById(loanId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Loan not found"));
+        List<Map<String, Object>> result = loanInstallmentRepository
+                .findByLoanOrderByInstallmentNumberAsc(loan)
+                .stream().map(this::mapInstallmentToMap).collect(Collectors.toList());
+        return ResponseEntity.ok(ApiResponse.success(result, "Installments retrieved"));
+    }
+
+    @PutMapping("/installments/{installmentId}/mark-paid")
+    @Transactional
+    public ResponseEntity<ApiResponse<Map<String, Object>>> markInstallmentPaid(
+            Authentication authentication,
+            @PathVariable UUID installmentId) {
+        LoanInstallment inst = loanInstallmentRepository.findById(installmentId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Installment not found"));
+        inst.setStatus("PAID");
+        inst.setPaidAt(LocalDateTime.now());
+        loanInstallmentRepository.save(inst);
+        auditLogService.log("ADMIN_MARKED_INSTALLMENT_PAID", authentication.getName(),
+                "Marked installment " + installmentId + " as paid",
+                installmentId.toString(), "INSTALLMENT", null);
+        return ResponseEntity.ok(ApiResponse.success(mapInstallmentToMap(inst), "Installment marked as paid"));
+    }
+
+    @PutMapping("/installments/{installmentId}/mark-overdue")
+    @Transactional
+    public ResponseEntity<ApiResponse<Map<String, Object>>> markInstallmentOverdue(
+            Authentication authentication,
+            @PathVariable UUID installmentId) {
+        LoanInstallment inst = loanInstallmentRepository.findById(installmentId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Installment not found"));
+        if ("PAID".equalsIgnoreCase(inst.getStatus())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot mark a paid installment as overdue");
+        }
+        inst.setStatus("OVERDUE");
+        loanInstallmentRepository.save(inst);
+        auditLogService.log("ADMIN_MARKED_INSTALLMENT_OVERDUE", authentication.getName(),
+                "Marked installment " + installmentId + " as overdue",
+                installmentId.toString(), "INSTALLMENT", null);
+        return ResponseEntity.ok(ApiResponse.success(mapInstallmentToMap(inst), "Installment marked as overdue"));
+    }
+
+    @PutMapping("/installments/{installmentId}/mark-pending")
+    @Transactional
+    public ResponseEntity<ApiResponse<Map<String, Object>>> markInstallmentPending(
+            Authentication authentication,
+            @PathVariable UUID installmentId) {
+        LoanInstallment inst = loanInstallmentRepository.findById(installmentId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Installment not found"));
+        inst.setStatus("PENDING");
+        inst.setPaidAt(null);
+        loanInstallmentRepository.save(inst);
+        auditLogService.log("ADMIN_MARKED_INSTALLMENT_PENDING", authentication.getName(),
+                "Marked installment " + installmentId + " as pending",
+                installmentId.toString(), "INSTALLMENT", null);
+        return ResponseEntity.ok(ApiResponse.success(mapInstallmentToMap(inst), "Installment marked as pending"));
+    }
+
+    @PostMapping("/installments/trigger-reminders")
+    @Transactional
+    public ResponseEntity<ApiResponse<Map<String, Object>>> triggerPaymentReminders(
+            Authentication authentication,
+            @RequestParam(defaultValue = "3") int daysAhead) {
+        LocalDate today = LocalDate.now();
+        List<LoanInstallment> upcoming = loanInstallmentRepository
+                .findPendingDueBetween(today.plusDays(1), today.plusDays(daysAhead));
+        for (LoanInstallment inst : upcoming) {
+            notificationService.sendToUser(
+                    inst.getLoan().getUser(),
+                    "Payment Reminder",
+                    "Reminder: Installment #" + inst.getInstallmentNumber()
+                            + " of $" + inst.getTotalAmount()
+                            + " is due on " + inst.getDueDate() + ".",
+                    NotificationType.LOAN_REMINDER);
+        }
+        // Auto-mark overdue: PENDING installments whose due date has already passed
+        List<LoanInstallment> overdue = loanInstallmentRepository
+                .findPendingDueBetween(today.minusYears(10), today.minusDays(1));
+        int overdueCount = 0;
+        for (LoanInstallment inst : overdue) {
+            if ("PENDING".equalsIgnoreCase(inst.getStatus())) {
+                inst.setStatus("OVERDUE");
+                loanInstallmentRepository.save(inst);
+                overdueCount++;
+            }
+        }
+        auditLogService.log("PAYMENT_REMINDERS_TRIGGERED", authentication.getName(),
+                "Triggered reminders for " + upcoming.size() + " upcoming, marked " + overdueCount + " overdue",
+                null, "INSTALLMENT", null);
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("reminders_sent", upcoming.size());
+        result.put("marked_overdue", overdueCount);
+        return ResponseEntity.ok(ApiResponse.success(result, "Payment reminders triggered"));
+    }
+
+    // ─── Transaction Management (Admin) ───────────────────────────────────────
+
+    @GetMapping("/transactions")
+    @Transactional(readOnly = true)
+    public ResponseEntity<ApiResponse<PagedResponse<Map<String, Object>>>> getAllTransactions(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String type,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(required = false) String userId,
+            @RequestParam(required = false) String search) {
+        List<groupproject.backend.model.Transaction> all = transactionRepository.findAll(
+                Sort.by(Sort.Direction.DESC, "createdAt"));
+        if (type != null && !type.isBlank()) {
+            try {
+                TransactionType tt = TransactionType.valueOf(type.toUpperCase());
+                all = all.stream().filter(tx -> tx.getType() == tt).collect(Collectors.toList());
+            } catch (IllegalArgumentException ignored) {}
+        }
+        if (from != null) {
+            all = all.stream().filter(tx -> tx.getTransactionDate() != null
+                    && !tx.getTransactionDate().isBefore(from)).collect(Collectors.toList());
+        }
+        if (to != null) {
+            all = all.stream().filter(tx -> tx.getTransactionDate() != null
+                    && !tx.getTransactionDate().isAfter(to)).collect(Collectors.toList());
+        }
+        if (userId != null && !userId.isBlank()) {
+            try {
+                Long uid = Long.parseLong(userId);
+                all = all.stream().filter(tx -> tx.getUser().getId().equals(uid)).collect(Collectors.toList());
+            } catch (NumberFormatException ignored) {}
+        }
+        if (search != null && !search.isBlank()) {
+            final String q = search.toLowerCase();
+            all = all.stream().filter(tx -> {
+                groupproject.backend.model.User u = tx.getUser();
+                return (u.getUsername() != null && u.getUsername().toLowerCase().contains(q))
+                        || (u.getEmail() != null && u.getEmail().toLowerCase().contains(q));
+            }).collect(Collectors.toList());
+        }
+        int total = all.size();
+        int fromIdx = page * size;
+        int toIdx = Math.min(fromIdx + size, total);
+        List<Map<String, Object>> content = (fromIdx >= total) ? List.of()
+                : all.subList(fromIdx, toIdx).stream().map(this::mapTxAdminToMap).collect(Collectors.toList());
+        PagedResponse<Map<String, Object>> paged = PagedResponse.<Map<String, Object>>builder()
+                .content(content).page(page).size(size).totalElements(total)
+                .totalPages(size > 0 ? (total + size - 1) / size : 0).last(toIdx >= total).build();
+        return ResponseEntity.ok(ApiResponse.success(paged, "Transactions retrieved"));
+    }
+
+    @DeleteMapping("/transactions/{id}")
+    @Transactional
+    public ResponseEntity<ApiResponse<Void>> deleteTransaction(
+            Authentication authentication,
+            @PathVariable UUID id) {
+        groupproject.backend.model.Transaction tx = transactionRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Transaction not found"));
+        transactionRepository.delete(tx);
+        auditLogService.log("ADMIN_DELETED_TRANSACTION", authentication.getName(),
+                "Deleted transaction " + id, id.toString(), "TRANSACTION", null);
+        return ResponseEntity.ok(ApiResponse.success(null, "Transaction deleted"));
+    }
+
+    // ─── User Password Reset & Delete ─────────────────────────────────────────
+
+    @PutMapping("/users/{userId}/reset-password")
+    @Transactional
+    public ResponseEntity<ApiResponse<Map<String, Object>>> resetUserPassword(
+            Authentication authentication,
+            @PathVariable Long userId) {
+        User user = getUserById(userId);
+        String tempPassword = "TempPass@" + (System.currentTimeMillis() % 100000);
+        user.setPassword(passwordEncoder.encode(tempPassword));
+        userRepository.save(user);
+        auditLogService.log("ADMIN_RESET_PASSWORD", authentication.getName(),
+                "Reset password for user " + user.getEmail(), userId.toString(), "USER", null);
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("temporaryPassword", tempPassword);
+        return ResponseEntity.ok(ApiResponse.success(result, "Password reset successfully"));
+    }
+
+    @DeleteMapping("/users/{userId}")
+    @Transactional
+    public ResponseEntity<ApiResponse<Void>> deleteUser(
+            Authentication authentication,
+            @PathVariable Long userId) {
+        User user = getUserById(userId);
+        if (user.getEmail().equals(authentication.getName())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot delete your own account");
+        }
+        // Clean up in dependency order
+        refreshTokenRepository.deleteAllByUser(user);
+        notificationRepository.deleteAll(notificationRepository.findByUserOrderByReadAscCreatedAtDesc(
+                user, org.springframework.data.domain.PageRequest.of(0, Integer.MAX_VALUE)).getContent());
+        List<Loan> loans = loanRepository.findByUserOrderByCreatedAtDesc(user);
+        for (Loan loan : loans) {
+            loanPaymentRepository.deleteAllByLoanId(loan.getId());
+            loanInstallmentRepository.deleteAllByLoanId(loan.getId());
+            loanDecisionRepository.deleteAll(loanDecisionRepository.findByLoanOrderByDecidedAtDesc(loan));
+        }
+        loanRepository.deleteAll(loans);
+        transactionRepository.deleteAll(transactionRepository.findByUserOrderByCreatedAtDesc(user));
+        userRepository.delete(user);
+        auditLogService.log("ADMIN_DELETED_USER", authentication.getName(),
+                "Deleted user " + user.getEmail(), userId.toString(), "USER", null);
+        return ResponseEntity.ok(ApiResponse.success(null, "User deleted"));
+    }
+
+    // ─── Additional Helper Methods ────────────────────────────────────────────
+
+    private Map<String, Object> mapInstallmentToMap(LoanInstallment inst) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("id", inst.getId());
+        m.put("loanId", inst.getLoan().getId());
+        m.put("applicantUsername", inst.getLoan().getUser().getRealUsername());
+        m.put("applicantEmail", inst.getLoan().getUser().getEmail());
+        m.put("installmentNumber", inst.getInstallmentNumber());
+        m.put("dueDate", inst.getDueDate());
+        m.put("principalAmount", inst.getPrincipalAmount());
+        m.put("interestAmount", inst.getInterestAmount());
+        m.put("totalAmount", inst.getTotalAmount());
+        m.put("status", inst.getStatus());
+        m.put("paidAt", inst.getPaidAt());
+        return m;
+    }
+
+    private Map<String, Object> mapTxAdminToMap(groupproject.backend.model.Transaction t) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("id", t.getId());
+        m.put("userId", t.getUser().getId());
+        m.put("username", t.getUser().getRealUsername());
+        m.put("email", t.getUser().getEmail());
+        m.put("type", t.getType());
+        m.put("amount", t.getAmount());
+        m.put("description", t.getDescription());
+        m.put("transactionDate", t.getTransactionDate());
+        m.put("createdAt", t.getCreatedAt());
+        return m;
     }
 }

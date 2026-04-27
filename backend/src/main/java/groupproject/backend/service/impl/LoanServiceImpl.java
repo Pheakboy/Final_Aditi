@@ -20,16 +20,22 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import groupproject.backend.dto.InstallmentPayRequestDTO;
 import groupproject.backend.dto.LoanDecisionRequestDTO;
+import groupproject.backend.dto.LoanInstallmentDTO;
 import groupproject.backend.dto.LoanRequestDTO;
 import groupproject.backend.dto.LoanResponseDTO;
 import groupproject.backend.model.Loan;
 import groupproject.backend.model.LoanDecision;
+import groupproject.backend.model.LoanInstallment;
+import groupproject.backend.model.LoanPayment;
 import groupproject.backend.model.User;
 import groupproject.backend.model.enums.LoanStatus;
 import groupproject.backend.model.enums.NotificationType;
 import groupproject.backend.model.enums.RiskLevel;
 import groupproject.backend.repository.LoanDecisionRepository;
+import groupproject.backend.repository.LoanInstallmentRepository;
+import groupproject.backend.repository.LoanPaymentRepository;
 import groupproject.backend.repository.LoanRepository;
 import groupproject.backend.repository.TransactionRepository;
 import groupproject.backend.repository.UserRepository;
@@ -46,6 +52,8 @@ public class LoanServiceImpl implements LoanService {
 
     private final LoanRepository loanRepository;
     private final LoanDecisionRepository loanDecisionRepository;
+    private final LoanInstallmentRepository loanInstallmentRepository;
+    private final LoanPaymentRepository loanPaymentRepository;
     private final TransactionRepository transactionRepository;
     private final UserRepository userRepository;
     private final RiskScoringService riskScoringService;
@@ -54,6 +62,8 @@ public class LoanServiceImpl implements LoanService {
 
     public LoanServiceImpl(LoanRepository loanRepository,
                            LoanDecisionRepository loanDecisionRepository,
+                           LoanInstallmentRepository loanInstallmentRepository,
+                           LoanPaymentRepository loanPaymentRepository,
                            TransactionRepository transactionRepository,
                            UserRepository userRepository,
                            RiskScoringService riskScoringService,
@@ -61,6 +71,8 @@ public class LoanServiceImpl implements LoanService {
                            NotificationService notificationService) {
         this.loanRepository = loanRepository;
         this.loanDecisionRepository = loanDecisionRepository;
+        this.loanInstallmentRepository = loanInstallmentRepository;
+        this.loanPaymentRepository = loanPaymentRepository;
         this.transactionRepository = transactionRepository;
         this.userRepository = userRepository;
         this.riskScoringService = riskScoringService;
@@ -193,16 +205,38 @@ public class LoanServiceImpl implements LoanService {
         loan.setAdminNote(request.getNote());
         loan = loanRepository.save(loan);
 
+        // ── Generate installment schedule on approval ──
+        if (loan.getStatus() == LoanStatus.ACTIVE
+                && loan.getTermMonths() != null && loan.getInterestRate() != null) {
+            BigDecimal monthlyRate = loan.getInterestRate()
+                    .divide(BigDecimal.valueOf(12), 10, RoundingMode.HALF_UP);
+            BigDecimal principal = loan.getLoanAmount()
+                    .divide(BigDecimal.valueOf(loan.getTermMonths()), 4, RoundingMode.HALF_UP);
+            BigDecimal interest = loan.getLoanAmount().multiply(monthlyRate)
+                    .setScale(4, RoundingMode.HALF_UP);
+            BigDecimal total = principal.add(interest).setScale(2, RoundingMode.HALF_UP);
+            principal = principal.setScale(2, RoundingMode.HALF_UP);
+            interest = interest.setScale(2, RoundingMode.HALF_UP);
+
+            List<LoanInstallment> installments = new ArrayList<>();
+            for (int i = 1; i <= loan.getTermMonths(); i++) {
+                installments.add(LoanInstallment.builder()
+                        .loan(loan)
+                        .installmentNumber(i)
+                        .dueDate(loan.getStartDate().plusMonths(i))
+                        .principalAmount(principal)
+                        .interestAmount(interest)
+                        .totalAmount(total)
+                        .build());
+            }
+            loanInstallmentRepository.saveAll(installments);
+        }
+
         // ── Upsert LoanDecision: update existing row or create new one ──
         LoanStatus storedDecision = (loan.getStatus() == LoanStatus.ACTIVE) ? LoanStatus.APPROVED : LoanStatus.REJECTED;
         final Loan savedLoan = loan;
         LoanDecision loanDecision = loanDecisionRepository.findByLoan(savedLoan)
-                .map(existing -> {
-                    existing.setAdmin(admin);
-                    existing.setDecision(storedDecision);
-                    existing.setNote(request.getNote());
-                    return existing;
-                })
+                .map(existing -> existing.update(admin, storedDecision, request.getNote()))
                 .orElseGet(() -> LoanDecision.builder()
                         .loan(savedLoan)
                         .admin(admin)
@@ -274,6 +308,79 @@ public class LoanServiceImpl implements LoanService {
                 .build();
 
         return ApiResponse.success(paged, "Loans retrieved");
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ApiResponse<List<LoanInstallmentDTO>> getInstallments(Authentication authentication, UUID loanId) {
+        User user = userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        Loan loan = loanRepository.findById(Objects.requireNonNull(loanId))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Loan not found"));
+        if (!loan.getUser().getId().equals(user.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
+        }
+        List<LoanInstallmentDTO> dtos = loanInstallmentRepository
+                .findByLoanOrderByInstallmentNumberAsc(loan)
+                .stream()
+                .map(i -> LoanInstallmentDTO.builder()
+                        .id(i.getId())
+                        .installmentNumber(i.getInstallmentNumber())
+                        .dueDate(i.getDueDate())
+                        .principalAmount(i.getPrincipalAmount())
+                        .interestAmount(i.getInterestAmount())
+                        .totalAmount(i.getTotalAmount())
+                        .status(i.getStatus())
+                        .paidAt(i.getPaidAt())
+                        .build())
+                .collect(Collectors.toList());
+        return ApiResponse.success(dtos, "Installments retrieved");
+    }
+
+    @Override
+    @Transactional
+    public ApiResponse<String> payInstallment(Authentication authentication, InstallmentPayRequestDTO request) {
+        User user = userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        LoanInstallment installment = loanInstallmentRepository.findById(
+                Objects.requireNonNull(request.getInstallmentId(), "Installment ID is required"))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Installment not found"));
+        if (!installment.getLoan().getUser().getId().equals(user.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
+        }
+        if (!"PENDING".equals(installment.getStatus()) && !"OVERDUE".equals(installment.getStatus())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Installment is already paid");
+        }
+
+        installment.setStatus("PAID");
+        installment.setPaidAt(LocalDateTime.now());
+        loanInstallmentRepository.save(installment);
+
+        loanPaymentRepository.save(LoanPayment.builder()
+                .installment(installment)
+                .amount(installment.getTotalAmount())
+                .paymentDate(LocalDate.now())
+                .build());
+
+        // Mark loan COMPLETED if all installments are paid
+        Loan loan = installment.getLoan();
+        long remaining = loanInstallmentRepository.countByLoanAndStatus(loan, "PENDING")
+                + loanInstallmentRepository.countByLoanAndStatus(loan, "OVERDUE");
+        if (remaining == 0) {
+            loan.setStatus(LoanStatus.COMPLETED);
+            loanRepository.save(loan);
+        }
+
+        notificationService.sendToUser(user, "Payment Successful",
+                "Installment #" + installment.getInstallmentNumber() + " of $"
+                        + installment.getTotalAmount() + " has been paid.",
+                NotificationType.INSTALLMENT_PAID);
+
+        auditLogService.log("INSTALLMENT_PAID", user.getEmail(),
+                "Paid installment #" + installment.getInstallmentNumber()
+                        + " for loan " + loan.getId());
+
+        return ApiResponse.success("Payment successful", "Installment paid");
     }
 
     // ─── Private Helpers ────────────────────────────────────────────────────────

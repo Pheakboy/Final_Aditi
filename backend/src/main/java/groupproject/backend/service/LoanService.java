@@ -6,7 +6,9 @@ import java.util.UUID;
 
 import org.springframework.security.core.Authentication;
 
+import groupproject.backend.dto.InstallmentPayRequestDTO;
 import groupproject.backend.dto.LoanDecisionRequestDTO;
+import groupproject.backend.dto.LoanInstallmentDTO;
 import groupproject.backend.dto.LoanRequestDTO;
 import groupproject.backend.dto.LoanResponseDTO;
 import groupproject.backend.response.ApiResponse;
@@ -30,4 +32,8 @@ public interface LoanService {
             String riskLevel,
             LocalDate fromDate,
             LocalDate toDate);
+
+    ApiResponse<List<LoanInstallmentDTO>> getInstallments(Authentication authentication, UUID loanId);
+
+    ApiResponse<String> payInstallment(Authentication authentication, InstallmentPayRequestDTO request);
 }

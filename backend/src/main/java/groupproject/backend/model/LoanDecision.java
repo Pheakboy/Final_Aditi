@@ -54,4 +54,11 @@ public class LoanDecision {
     protected void onCreate() {
         decidedAt = LocalDateTime.now();
     }
+
+    public LoanDecision update(User newAdmin, LoanStatus newDecision, String newNote) {
+        this.admin = newAdmin;
+        this.decision = newDecision;
+        this.note = newNote;
+        return this;
+    }
 }

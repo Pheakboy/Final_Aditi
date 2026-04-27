@@ -227,6 +227,46 @@ export const adminApi = {
     api.get("/api/admin/notifications", { params }),
   deleteNotification: (id: string) =>
     api.delete(`/api/admin/notifications/${id}`),
+
+  // Installments
+  getAllInstallments: (params?: {
+    page?: number;
+    size?: number;
+    status?: string;
+    loanId?: string;
+    search?: string;
+  }) => api.get("/api/admin/installments", { params }),
+  getLoanInstallments: (loanId: string) =>
+    api.get(`/api/admin/loans/${loanId}/installments`),
+  markInstallmentPaid: (installmentId: string) =>
+    api.put(`/api/admin/installments/${installmentId}/mark-paid`),
+  markInstallmentOverdue: (installmentId: string) =>
+    api.put(`/api/admin/installments/${installmentId}/mark-overdue`),
+  markInstallmentPending: (installmentId: string) =>
+    api.put(`/api/admin/installments/${installmentId}/mark-pending`),
+  triggerPaymentReminders: (daysAhead?: number) =>
+    api.post("/api/admin/installments/trigger-reminders", null, {
+      params: { daysAhead: daysAhead ?? 3 },
+    }),
+
+  // Transactions (Admin)
+  getAllTransactions: (params?: {
+    page?: number;
+    size?: number;
+    type?: string;
+    from?: string;
+    to?: string;
+    userId?: string;
+    search?: string;
+  }) => api.get("/api/admin/transactions", { params }),
+  deleteTransaction: (id: string) =>
+    api.delete(`/api/admin/transactions/${id}`),
+
+  // User extra actions
+  resetUserPassword: (userId: number | string) =>
+    api.put(`/api/admin/users/${userId}/reset-password`),
+  deleteUser: (userId: number | string) =>
+    api.delete(`/api/admin/users/${userId}`),
 };
 
 // ─── Dashboard API ───────────────────────────────────────────────────────────

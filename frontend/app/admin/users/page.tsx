@@ -11,6 +11,7 @@ import ErrorAlert from "../../../components/ui/ErrorAlert";
 import UserTable from "../../../components/admin/users/UserTable";
 import CreateUserModal from "../../../components/admin/users/CreateUserModal";
 import EditUserModal from "../../../components/admin/users/EditUserModal";
+import { useToast } from "../../../components/ui/Toast";
 
 interface CreateForm {
   username: string;
@@ -47,6 +48,15 @@ export default function AdminUsersPage() {
   });
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState("");
+
+  const [resetTarget, setResetTarget] = useState<AdminUser | null>(null);
+  const [resetResult, setResetResult] = useState("");
+  const [resetLoading, setResetLoading] = useState(false);
+
+  const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  const { showToast } = useToast();
 
   useEffect(() => {
     if (!isLoading && !user) router.push("/login");
@@ -139,6 +149,46 @@ export default function AdminUsersPage() {
       await fetchUsers();
     } catch {
       /* ignore */
+    }
+  };
+
+  const handleResetPassword = async (u: AdminUser) => {
+    setResetTarget(u);
+    setResetResult("");
+  };
+
+  const confirmResetPassword = async () => {
+    if (!resetTarget) return;
+    setResetLoading(true);
+    try {
+      const res = await adminApi.resetUserPassword(resetTarget.id);
+      const data = res.data.data as { temporaryPassword?: string };
+      setResetResult(data.temporaryPassword || "Password reset successfully");
+    } catch {
+      showToast("Failed to reset password", "error");
+      setResetTarget(null);
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
+  const handleDeleteUser = (u: AdminUser) => {
+    setDeleteTarget(u);
+  };
+
+  const confirmDeleteUser = async () => {
+    if (!deleteTarget) return;
+    setDeleteLoading(true);
+    try {
+      await adminApi.deleteUser(deleteTarget.id);
+      showToast(`User "${deleteTarget.username}" deleted`, "success");
+      setDeleteTarget(null);
+      await fetchUsers();
+    } catch {
+      showToast("Failed to delete user", "error");
+      setDeleteTarget(null);
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -247,6 +297,8 @@ export default function AdminUsersPage() {
           search={search}
           onEdit={openEdit}
           onToggleStatus={handleToggleStatus}
+          onResetPassword={handleResetPassword}
+          onDelete={handleDeleteUser}
         />
       </div>
 
@@ -272,6 +324,112 @@ export default function AdminUsersPage() {
           onSubmit={handleEdit}
           onClose={() => setEditTarget(null)}
         />
+      )}
+
+      {/* Reset Password Modal */}
+      {resetTarget && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+            <h2 className="text-lg font-bold text-gray-900 mb-1">
+              Reset Password
+            </h2>
+            {resetResult ? (
+              <div className="space-y-4">
+                <p className="text-sm text-gray-600">
+                  Password reset for <strong>{resetTarget.username}</strong>.
+                  Share this temporary password:
+                </p>
+                <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 font-mono text-sm text-amber-800 break-all">
+                  {resetResult}
+                </div>
+                <p className="text-xs text-gray-500">
+                  The user should change this password after logging in.
+                </p>
+                <button
+                  onClick={() => {
+                    setResetTarget(null);
+                    setResetResult("");
+                  }}
+                  className="w-full py-2.5 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors"
+                >
+                  Done
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <p className="text-sm text-gray-600">
+                  Reset password for <strong>{resetTarget.username}</strong> (
+                  {resetTarget.email})? A new temporary password will be
+                  generated.
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setResetTarget(null)}
+                    className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={confirmResetPassword}
+                    disabled={resetLoading}
+                    className="flex-1 py-2.5 bg-amber-500 text-white rounded-xl text-sm font-medium hover:bg-amber-600 disabled:opacity-50"
+                  >
+                    {resetLoading ? "Resetting…" : "Reset Password"}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Delete User Modal */}
+      {deleteTarget && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                <svg
+                  className="w-5 h-5 text-red-600"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                  />
+                </svg>
+              </div>
+              <h2 className="text-lg font-bold text-gray-900">Delete User</h2>
+            </div>
+            <p className="text-sm text-gray-600 mb-1">
+              Delete <strong>{deleteTarget.username}</strong> (
+              {deleteTarget.email})?
+            </p>
+            <p className="text-xs text-red-600 mb-6">
+              This will permanently delete the user and all their loans,
+              transactions, and data. This cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteTarget(null)}
+                className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeleteUser}
+                disabled={deleteLoading}
+                className="flex-1 py-2.5 bg-red-600 text-white rounded-xl text-sm font-medium hover:bg-red-700 disabled:opacity-50"
+              >
+                {deleteLoading ? "Deleting…" : "Delete User"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </AdminLayout>
   );

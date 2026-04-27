@@ -7,6 +7,8 @@ interface UserTableProps {
   search: string;
   onEdit: (user: AdminUser) => void;
   onToggleStatus: (user: AdminUser) => void;
+  onResetPassword?: (user: AdminUser) => void;
+  onDelete?: (user: AdminUser) => void;
 }
 
 export default function UserTable({
@@ -15,6 +17,8 @@ export default function UserTable({
   search,
   onEdit,
   onToggleStatus,
+  onResetPassword,
+  onDelete,
 }: UserTableProps) {
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -134,6 +138,22 @@ export default function UserTable({
                     >
                       Profile
                     </Link>
+                    {onResetPassword && (
+                      <button
+                        onClick={() => onResetPassword(u)}
+                        className="px-2.5 py-1 text-xs font-medium text-amber-600 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors"
+                      >
+                        Reset Pwd
+                      </button>
+                    )}
+                    {onDelete && (
+                      <button
+                        onClick={() => onDelete(u)}
+                        className="px-2.5 py-1 text-xs font-medium text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors"
+                      >
+                        Delete
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>
